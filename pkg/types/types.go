@@ -1,8 +1,9 @@
 package types
 
 import (
-	"github.com/segmentio/ksuid"
 	"time"
+
+	"github.com/segmentio/ksuid"
 )
 
 type Announcement struct {
@@ -38,10 +39,10 @@ type Frame struct {
 	// a distance SourceEndpointName
 	DestinationEndpointName string `json:"destination_endpoint_name"`
 
-	// is an markAck needed?
+	// is a markAck needed?
 	NeedsAck bool `json:"needs_ack"`
 
-	// is this an markAck?
+	// is this a markAck?
 	IsAck bool `json:"is_ack"`
 
 	// the actual user payload (or fragment thereof)

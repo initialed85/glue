@@ -2,14 +2,16 @@ package network
 
 import (
 	"fmt"
-	"github.com/segmentio/ksuid"
-	"glue/pkg/worker"
 	"log"
 	"net"
 	"reflect"
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/segmentio/ksuid"
+
+	"glue/pkg/worker"
 )
 
 const Timeout = time.Second * 1
@@ -139,7 +141,7 @@ func (r *Receiver) RegisterCallback(
 
 	r.callbacks[identifier] = callback
 
-	log.Printf("callback registered: %#+v", r.dstAddr.String())
+	log.Printf("callback registered: %#+v", r.rawDstAddr)
 
 	return nil
 }
@@ -170,7 +172,7 @@ func (r *Receiver) UnregisterCallback(
 
 	delete(r.callbacks, identifier)
 
-	log.Printf("callback unregistered: %#+v", r.dstAddr.String())
+	log.Printf("callback unregistered: %#+v", r.rawDstAddr)
 
 	return nil
 }

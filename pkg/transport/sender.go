@@ -2,16 +2,18 @@ package transport
 
 import (
 	"fmt"
+	"log"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/segmentio/ksuid"
+
 	"glue/pkg/discovery"
 	"glue/pkg/network"
 	"glue/pkg/serialization"
 	"glue/pkg/types"
 	"glue/pkg/worker"
-	"log"
-	"strings"
-	"sync"
-	"time"
 )
 
 const scheduledWorkerRate = time.Millisecond * 100

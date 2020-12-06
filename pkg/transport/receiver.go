@@ -2,12 +2,13 @@ package transport
 
 import (
 	"fmt"
-	"glue/pkg/network"
-	"glue/pkg/serialization"
-	"glue/pkg/types"
 	"log"
 	"net"
 	"time"
+
+	"glue/pkg/network"
+	"glue/pkg/serialization"
+	"glue/pkg/types"
 )
 
 type Receiver struct {
@@ -48,6 +49,7 @@ func (r *Receiver) handleReceive(srcAddr *net.UDPAddr, data []byte) {
 	container, err := serialization.Deserialize(data)
 	if err != nil {
 		log.Printf("warning: attempt to deserialize returned %#+v for %#+v from %#+v", err, string(data), srcAddr)
+		return
 	}
 
 	container.ReceivedTimestamp = receivedTimestamp
