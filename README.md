@@ -14,31 +14,31 @@ Put simply, I want a robust alternative to MQTT without a broker.
 
 From top to bottom:
 
-- Model
+- Model (NOT STARTED)
     - this one I have the loosest concept of
     - basically I wanna built on the Topics layer to send around a delta of data and build up a distributed model of state
     - should deal with conflicts, consensus / quorum etc
     - maybe somebody has done a good Paxos library?
-- Topics
+- Topics (NOT STARTED)
     - addressing is topic names
     - publish / subscribe
     - handle late joiners (at the publisher level)
     - handle network partitions (any endpoint can cache messages)
-- Fragmentation
+- Fragmentation (IN PROGRESS)
     - addressing is endpoint IDs and names
     - send / receive
     - handle fragmentation / defragmentation of messages
-- Transport
+- Transport (COMPLETE)
     - addressing is endpoint IDs and names
     - send / receive
     - handle ACKs / resending of messages
-- Discovery
+- Discovery (COMPLETE)
     - addressing is endpoint IDs and names
     - announce / listen
     - handle add on discovery / remove on expiry
-- Serialization
+- Serialization (COMPLETE)
     - cross-platform/cross-language format (right now it's just JSON)
-- Network
+- Network (COMPLETE)
     - shared abstraction for low level network interactions
 
 ## Example
