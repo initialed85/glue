@@ -7,6 +7,7 @@ import (
 	"glue/pkg/types"
 	"log"
 	"net"
+	"time"
 )
 
 type Receiver struct {
@@ -38,13 +39,19 @@ func NewReceiver(
 	return &r
 }
 
-func (r *Receiver) handleReceive(conn *net.UDPAddr, data []byte) {
+func (r *Receiver) handleReceive(srcAddr *net.UDPAddr, data []byte) {
 	var err error
+
+	receivedTimestamp := time.Now()
+	receivedAddress := srcAddr.String()
 
 	container, err := serialization.Deserialize(data)
 	if err != nil {
-		log.Printf("warning: attempt to deserialize returned %v for %v", err, string(data))
+		log.Printf("warning: attempt to deserialize returned %#+v for %#+v from %#+v", err, string(data), srcAddr)
 	}
+
+	container.ReceivedTimestamp = receivedTimestamp
+	container.ReceivedAddress = receivedAddress
 
 	// in all cases sendAck an markAck so that the sender stops trying to sendAck it (even if it's not for us,
 	// no amount of resending it to us will fix that)
