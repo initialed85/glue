@@ -135,10 +135,7 @@ func (r *Receiver) RegisterCallback(
 		}
 	}
 
-	identifier, err := ksuid.NewRandom()
-	if err != nil {
-		return err
-	}
+	identifier := ksuid.New()
 
 	r.callbacks[identifier] = callback
 
