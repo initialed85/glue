@@ -112,7 +112,7 @@ func NewManagerSimple() (*Manager, error) {
 		port,
 		"239.192.137.1:27320",
 		defaultInterfaceName,
-		time.Millisecond*100,
+		time.Second,
 		5,
 		func(container types.Container) {},
 		func(container types.Container) {},
