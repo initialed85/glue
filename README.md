@@ -19,7 +19,7 @@ From top to bottom:
     - basically I wanna built on the Topics layer to send around a delta of data and build up a distributed model of state
     - should deal with conflicts, consensus / quorum etc
     - maybe somebody has done a good Paxos library?
-- Topics (NOT STARTED)
+- Topics (IN PROGRESS)
     - addressing is topic names
     - publish / subscribe
     - handle late joiners (at the publisher level)

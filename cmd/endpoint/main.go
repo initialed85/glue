@@ -8,11 +8,11 @@ import (
 
 	"github.com/segmentio/ksuid"
 
-	"glue/pkg/endpoint"
-	"glue/pkg/topics"
-	"glue/pkg/types"
-	"glue/pkg/utils"
-	"glue/pkg/worker"
+	"github.com/initialed85/glue/pkg/endpoint"
+	"github.com/initialed85/glue/pkg/topics"
+	"github.com/initialed85/glue/pkg/types"
+	"github.com/initialed85/glue/pkg/utils"
+	"github.com/initialed85/glue/pkg/worker"
 )
 
 func main() {
