@@ -74,6 +74,12 @@ func (m *Manager) Subscribe(
 	)
 }
 
+func (m *Manager) Unsubscribe(
+	topicName string,
+) error {
+	return m.subscriber.Unsubscribe(topicName)
+}
+
 func (m *Manager) Start() {
 	m.publisher.Start()
 	m.subscriber.Start()

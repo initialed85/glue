@@ -153,6 +153,12 @@ func (m *Manager) Subscribe(
 	)
 }
 
+func (m *Manager) Unsubscribe(
+	topicName string,
+) error {
+	return m.topicsManager.Unsubscribe(topicName)
+}
+
 func (m *Manager) Start() {
 	m.networkManager.Start()
 	m.discoveryManager.Start()

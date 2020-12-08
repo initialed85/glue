@@ -116,6 +116,24 @@ func (s *Subscriber) Subscribe(
 	)
 }
 
+func (s *Subscriber) Unsubscribe(
+	topicName string,
+) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	subscription, ok := s.subscriptionByTopicName[topicName]
+	if !ok {
+		return nil
+	}
+
+	subscription.Stop()
+
+	s.subscriptionByTopicName[topicName] = nil
+
+	return nil
+}
+
 func (s *Subscriber) Start() {
 	// noop
 }
