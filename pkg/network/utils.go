@@ -73,3 +73,58 @@ func GetAddressesAndInterfaces(rawIntfc, rawAddr string) (addr *net.UDPAddr, int
 
 	return
 }
+
+// TODO: DRY this up w/ the above
+func GetFreePort() (int, error) {
+	addr, err := net.ResolveUDPAddr("udp", "0.0.0.0:0")
+	if err != nil {
+		return 0, err
+	}
+
+	l, err := net.ListenUDP("udp", addr)
+	if err != nil {
+		return 0, err
+	}
+
+	defer func() {
+		_ = l.Close()
+	}()
+
+	return l.LocalAddr().(*net.UDPAddr).Port, nil
+}
+
+// TODO: DRY this up w/ the above
+func GetDefaultInterfaceName() (string, error) {
+	addr, err := GetAddress("1.1.1.1:23720")
+	if err != nil {
+		return "", err
+	}
+
+	conn, err := net.DialUDP("udp4", nil, addr)
+	if err != nil {
+		return "", err
+	}
+
+	defaultAddr := conn.LocalAddr().(*net.UDPAddr).IP
+
+	intfcs, err := net.Interfaces()
+	if err != nil {
+		return "", err
+	}
+
+	intfcName := ""
+	for _, intfc := range intfcs {
+		addrs, err := intfc.Addrs()
+		if err != nil {
+			continue
+		}
+
+		for _, addr := range addrs {
+			if addr.(*net.IPNet).IP.Equal(defaultAddr) {
+				intfcName = intfc.Name
+			}
+		}
+	}
+
+	return intfcName, nil
+}

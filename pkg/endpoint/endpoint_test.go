@@ -5,26 +5,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/segmentio/ksuid"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/initialed85/glue/pkg/topics"
-	"github.com/initialed85/glue/pkg/types"
 )
 
-func getThings(endpointName string, listenPort int) *Manager {
-	return NewManager(
-		1,
-		ksuid.New(),
-		endpointName,
-		listenPort,
-		"239.192.137.1:27320",
-		"en0",
-		time.Millisecond*100,
-		3,
-		func(container types.Container) {},
-		func(container types.Container) {},
-	)
+func getThings() *Manager {
+	m, err := NewManagerSimple()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return m
 }
 
 func startThings(endpointManager *Manager) {
@@ -38,10 +30,10 @@ func stopThings(endpointManager *Manager) {
 func TestIntegration_Manager(t *testing.T) {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile)
 
-	endpointManager1 := getThings("A", 27321)
+	endpointManager1 := getThings()
 	startThings(endpointManager1)
 
-	endpointManager2 := getThings("B", 27322)
+	endpointManager2 := getThings()
 	startThings(endpointManager2)
 
 	time.Sleep(time.Millisecond * 100)

@@ -1,6 +1,7 @@
 package endpoint
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/segmentio/ksuid"
@@ -89,6 +90,33 @@ func NewManager(
 	)
 
 	return &m
+}
+
+func NewManagerSimple() (*Manager, error) {
+	endpointID := ksuid.New()
+
+	port, err := network.GetFreePort()
+	if err != nil {
+		return nil, err
+	}
+
+	defaultInterfaceName, err := network.GetDefaultInterfaceName()
+	if err != nil {
+		return nil, err
+	}
+
+	return NewManager(
+		1,
+		endpointID,
+		fmt.Sprintf("Endpoint_%v", endpointID),
+		port,
+		"239.192.137.1:27320",
+		defaultInterfaceName,
+		time.Millisecond*100,
+		5,
+		func(container types.Container) {},
+		func(container types.Container) {},
+	), nil
 }
 
 func (m *Manager) EndpointID() ksuid.KSUID {

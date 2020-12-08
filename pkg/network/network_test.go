@@ -1,11 +1,12 @@
 package network
 
 import (
-	"github.com/stretchr/testify/assert"
 	"log"
 	"net"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestIntegration_Manager(t *testing.T) {
@@ -73,4 +74,24 @@ func TestIntegration_Manager(t *testing.T) {
 	}
 
 	_ = lastData
+}
+
+func TestGetFreePort(t *testing.T) {
+	for i := 0; i < 8; i++ {
+		port, err := GetFreePort()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		assert.Greater(t, port, 1024)
+	}
+}
+
+func TestGetDefaultInterface(t *testing.T) {
+	addr, err := GetDefaultInterfaceName()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	assert.NotEmpty(t, addr)
 }
