@@ -1,4 +1,4 @@
-module glue
+module github.com/initialed85/glue
 
 go 1.15
 
