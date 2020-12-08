@@ -45,7 +45,7 @@ From top to bottom:
 
 ### Transport
 
-There is a naive usage of the Transport layer at `cmd/transport/main.go`.
+An example usage of the Transport layer is at `cmd/transport/main.go`.
 
 To use; run the following 4 commands in 4 different shells (note: you may need to change the interfaceName flag):
 
@@ -54,4 +54,26 @@ go run cmd/transport/main.go -interfaceName en0 -multicastAddress 239.192.137.1:
 go run cmd/transport/main.go -interfaceName en0 -multicastAddress 239.192.137.1:37320 -listenPort 37322 -endpointName B -sendMessages
 go run cmd/transport/main.go -interfaceName en0 -multicastAddress 239.192.137.1:37320 -listenPort 37323 -endpointName C -sendMessages
 go run cmd/transport/main.go -interfaceName en0 -multicastAddress 239.192.137.1:37320 -listenPort 37324 -endpointName D -sendMessages
+```
+
+### Topics
+
+An example usage of the Transport layer is at `cmd/transport/main.go`.
+
+To use; run the following 4 commands in 4 different shells (note: you may need to change the interfaceName flag):
+
+```
+go run cmd/topics/main.go -interfaceName en0 -listenPort 37321 -sendMessages
+go run cmd/topics/main.go -interfaceName en0 -listenPort 37322
+go run cmd/topics/main.go -interfaceName en0 -listenPort 37323
+go run cmd/topics/main.go -interfaceName en0 -listenPort 37324
+```
+
+### Endpoint
+
+```
+go run cmd/endpoint/main.go -interfaceName en0 -listenPort 37321 -sendMessages
+go run cmd/endpoint/main.go -interfaceName en0 -listenPort 37322
+go run cmd/endpoint/main.go -interfaceName en0 -listenPort 37323
+go run cmd/endpoint/main.go -interfaceName en0 -listenPort 37324
 ```
