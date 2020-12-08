@@ -26,6 +26,7 @@ type Publication struct {
 	topicName                  string
 	topicType                  string
 	transportManager           *transport.Manager
+	subscriber                 **Subscriber
 }
 
 func NewPublication(
@@ -34,7 +35,7 @@ func NewPublication(
 	topicName string,
 	topicType string,
 	transportManager *transport.Manager,
-
+	subscriber **Subscriber,
 ) *Publication {
 	p := Publication{
 		messageByMessageIdentifier: make(map[MessageIdentifier]Message),
@@ -44,6 +45,7 @@ func NewPublication(
 		topicName:                  topicName,
 		topicType:                  topicType,
 		transportManager:           transportManager,
+		subscriber:                 subscriber,
 	}
 
 	p.scheduleWorker = worker.NewScheduledWorker(
@@ -79,6 +81,10 @@ func (p *Publication) work() {
 	p.mu.Unlock()
 }
 
+func (p *Publication) TopicType() string {
+	return p.topicType
+}
+
 func (p *Publication) Publish(
 	expiry time.Duration,
 	payload []byte,
@@ -94,6 +100,12 @@ func (p *Publication) Publish(
 		TopicType:      p.topicType,
 		MessageType:    StandardMessageType,
 		Payload:        payload,
+	}
+
+	// TODO: is this gross? this is gross.
+	subscriber := *p.subscriber
+	if subscriber != nil {
+		subscriber.handleInternalReceive(message)
 	}
 
 	// TODO: proper serialization

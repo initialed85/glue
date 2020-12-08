@@ -17,14 +17,14 @@ type Subscriber struct {
 	endpointID              ksuid.KSUID
 	endpointName            string
 	transportManager        *transport.Manager
-	publisher               *Publisher
+	publisher               **Publisher
 }
 
 func NewSubscriber(
 	endpointID ksuid.KSUID,
 	endpointName string,
 	transportManager *transport.Manager,
-	publisher *Publisher,
+	publisher **Publisher,
 ) *Subscriber {
 	s := Subscriber{
 		subscriptionByTopicName: make(map[string]*Subscription),
@@ -37,21 +37,14 @@ func NewSubscriber(
 	return &s
 }
 
-func (s *Subscriber) HandleReceive(container types.Container) {
-	var message Message
-
-	err := json.Unmarshal(container.Frame.Payload, &message)
-	if err != nil {
-		log.Printf("warning: attempt to unmarshal returned %#+v for %#+v from %#+v", err, string(container.Frame.Payload), container.ReceivedAddress)
-	}
-
+func (s *Subscriber) handleInternalReceive(message Message) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	subscription, ok := s.subscriptionByTopicName[message.TopicName]
 	if !ok {
 		// TODO: flesh this out- it's for unrelated late joiners
-		err = s.subscribe(
+		_ = s.subscribe(
 			message.TopicName,
 			message.TopicType,
 			func(Message) {
@@ -73,6 +66,17 @@ func (s *Subscriber) HandleReceive(container types.Container) {
 	}
 
 	subscription.HandleReceive(message)
+}
+
+func (s *Subscriber) HandleReceive(container types.Container) {
+	var message Message
+
+	err := json.Unmarshal(container.Frame.Payload, &message)
+	if err != nil {
+		log.Printf("warning: attempt to unmarshal returned %#+v for %#+v from %#+v", err, string(container.Frame.Payload), container.ReceivedAddress)
+	}
+
+	s.handleInternalReceive(message)
 }
 
 // be sure you're holding the mutex before calling this

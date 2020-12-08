@@ -16,18 +16,21 @@ type Publisher struct {
 	endpointID             ksuid.KSUID
 	endpointName           string
 	transportManager       *transport.Manager
+	subscriber             **Subscriber
 }
 
 func NewPublisher(
 	endpointID ksuid.KSUID,
 	endpointName string,
 	transportManager *transport.Manager,
+	subscriber **Subscriber,
 ) *Publisher {
 	p := Publisher{
 		publicationByTopicName: make(map[string]*Publication),
 		endpointID:             endpointID,
 		endpointName:           endpointName,
 		transportManager:       transportManager,
+		subscriber:             subscriber,
 	}
 
 	return &p
@@ -50,12 +53,12 @@ func (p *Publisher) Publish(
 			topicName,
 			topicType,
 			p.transportManager,
+			p.subscriber,
 		)
 		publication.Start()
 		p.publicationByTopicName[topicName] = publication
 	} else {
-		// TODO: accessing property of other struct
-		if publication.topicType != topicType {
+		if publication.TopicType() != topicType {
 			return fmt.Errorf("publication for topic %#+v already exists with type %#+v; cannot publish with type %#+v",
 				publication.topicName,
 				publication.topicType,

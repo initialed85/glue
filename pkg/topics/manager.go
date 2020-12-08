@@ -32,13 +32,14 @@ func NewManager(
 		m.endpointID,
 		m.endpointName,
 		m.transportManager,
+		&m.subscriber,
 	)
 
 	m.subscriber = NewSubscriber(
 		m.endpointID,
 		m.endpointName,
 		m.transportManager,
-		m.publisher,
+		&m.publisher,
 	)
 
 	return &m
