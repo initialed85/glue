@@ -7,7 +7,7 @@ import (
 
 	"github.com/segmentio/ksuid"
 
-	"glue/pkg/transport"
+	"github.com/initialed85/glue/pkg/transport"
 )
 
 type Publisher struct {

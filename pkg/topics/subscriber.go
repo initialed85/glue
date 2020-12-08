@@ -7,8 +7,8 @@ import (
 
 	"github.com/segmentio/ksuid"
 
-	"glue/pkg/transport"
-	"glue/pkg/types"
+	"github.com/initialed85/glue/pkg/transport"
+	"github.com/initialed85/glue/pkg/types"
 )
 
 type Subscriber struct {

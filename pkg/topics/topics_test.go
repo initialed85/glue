@@ -8,10 +8,10 @@ import (
 	"github.com/segmentio/ksuid"
 	"github.com/stretchr/testify/assert"
 
-	"glue/pkg/discovery"
-	"glue/pkg/network"
-	"glue/pkg/transport"
-	"glue/pkg/types"
+	"github.com/initialed85/glue/pkg/discovery"
+	"github.com/initialed85/glue/pkg/network"
+	"github.com/initialed85/glue/pkg/transport"
+	"github.com/initialed85/glue/pkg/types"
 )
 
 func getThings(endpointName string, listenPort int) (*network.Manager, ksuid.KSUID, *discovery.Manager, chan types.Container, chan types.Container, *transport.Manager, *Manager) {

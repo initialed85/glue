@@ -3,9 +3,9 @@ package transport
 import (
 	"github.com/segmentio/ksuid"
 	"github.com/stretchr/testify/assert"
-	"glue/pkg/discovery"
-	"glue/pkg/network"
-	"glue/pkg/types"
+	"github.com/initialed85/glue/pkg/discovery"
+	"github.com/initialed85/glue/pkg/network"
+	"github.com/initialed85/glue/pkg/types"
 	"log"
 	"testing"
 	"time"

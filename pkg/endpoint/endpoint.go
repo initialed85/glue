@@ -5,11 +5,11 @@ import (
 
 	"github.com/segmentio/ksuid"
 
-	"glue/pkg/discovery"
-	"glue/pkg/network"
-	"glue/pkg/topics"
-	"glue/pkg/transport"
-	"glue/pkg/types"
+	"github.com/initialed85/glue/pkg/discovery"
+	"github.com/initialed85/glue/pkg/network"
+	"github.com/initialed85/glue/pkg/topics"
+	"github.com/initialed85/glue/pkg/transport"
+	"github.com/initialed85/glue/pkg/types"
 )
 
 type Manager struct {

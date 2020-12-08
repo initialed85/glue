@@ -9,11 +9,11 @@ import (
 
 	"github.com/segmentio/ksuid"
 
-	"glue/pkg/discovery"
-	"glue/pkg/network"
-	"glue/pkg/serialization"
-	"glue/pkg/types"
-	"glue/pkg/worker"
+	"github.com/initialed85/glue/pkg/discovery"
+	"github.com/initialed85/glue/pkg/network"
+	"github.com/initialed85/glue/pkg/serialization"
+	"github.com/initialed85/glue/pkg/types"
+	"github.com/initialed85/glue/pkg/worker"
 )
 
 const scheduledWorkerRate = time.Millisecond * 100

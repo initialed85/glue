@@ -2,7 +2,7 @@ package worker
 
 import (
 	"github.com/stretchr/testify/assert"
-	"glue/internal/test_utils"
+	"github.com/initialed85/glue/internal/test_utils"
 	"testing"
 	"time"
 )

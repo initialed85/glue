@@ -8,8 +8,8 @@ import (
 	"github.com/segmentio/ksuid"
 	"github.com/stretchr/testify/assert"
 
-	"glue/pkg/topics"
-	"glue/pkg/types"
+	"github.com/initialed85/glue/pkg/topics"
+	"github.com/initialed85/glue/pkg/types"
 )
 
 func getThings(endpointName string, listenPort int) *Manager {

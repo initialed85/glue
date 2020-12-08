@@ -3,9 +3,9 @@ package discovery
 import (
 	"fmt"
 	"github.com/segmentio/ksuid"
-	"glue/pkg/network"
-	"glue/pkg/types"
-	"glue/pkg/worker"
+	"github.com/initialed85/glue/pkg/network"
+	"github.com/initialed85/glue/pkg/types"
+	"github.com/initialed85/glue/pkg/worker"
 	"log"
 	"sync"
 	"time"

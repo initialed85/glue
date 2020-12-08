@@ -11,7 +11,7 @@ import (
 
 	"github.com/segmentio/ksuid"
 
-	"glue/pkg/worker"
+	"github.com/initialed85/glue/pkg/worker"
 )
 
 const Timeout = time.Second * 1

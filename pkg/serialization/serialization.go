@@ -3,7 +3,7 @@ package serialization
 import (
 	"encoding/json"
 	"fmt"
-	"glue/pkg/types"
+	"github.com/initialed85/glue/pkg/types"
 )
 
 func Serialize(base types.Container) ([]byte, error) {

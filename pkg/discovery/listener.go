@@ -1,9 +1,9 @@
 package discovery
 
 import (
-	"glue/pkg/network"
-	"glue/pkg/serialization"
-	"glue/pkg/types"
+	"github.com/initialed85/glue/pkg/network"
+	"github.com/initialed85/glue/pkg/serialization"
+	"github.com/initialed85/glue/pkg/types"
 	"log"
 	"net"
 	"time"
