@@ -42,19 +42,21 @@ func (s *Subscriber) handleInternalReceive(message Message) {
 	defer s.mu.Unlock()
 
 	subscription, ok := s.subscriptionByTopicName[message.TopicName]
+
+	// if we don't have a subscription, see if we're listening for the wildcard topic
+	usingWildcard := false
 	if !ok {
-		// TODO: flesh this out- it's for unrelated late joiners
-		_ = s.subscribe(
-			message.TopicName,
-			message.TopicType,
-			func(Message) {
-				// noop
-			},
-		)
+		subscription, ok = s.subscriptionByTopicName["#"]
+		usingWildcard = ok
+	}
+
+	// TODO: here's where we'd put the late joiner / persistence stuff
+	if !ok {
 		return
 	}
 
-	if subscription.topicType != message.TopicType {
+	// TODO: not sure how to handle type safety and wildcard topics
+	if !usingWildcard && subscription.topicType != message.TopicType {
 		log.Printf(
 			"warning: expected type %#v for topic %#v but got %#v; message was %#+v",
 			subscription.topicType,
@@ -98,8 +100,7 @@ func (s *Subscriber) subscribe(
 		subscription.Start()
 		s.subscriptionByTopicName[topicName] = subscription
 	} else {
-		// TODO: accessing property of other struct
-		subscription.onReceive = onReceive
+		subscription.OnReceive(onReceive)
 	}
 
 	return nil

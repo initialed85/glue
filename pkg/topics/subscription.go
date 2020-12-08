@@ -74,6 +74,10 @@ func (s *Subscription) work() {
 	s.mu.Unlock()
 }
 
+func (s *Subscription) OnReceive(onReceive func(Message)) {
+	s.onReceive = onReceive
+}
+
 func (s *Subscription) HandleReceive(message Message) {
 	messages := make([]Message, 0)
 
