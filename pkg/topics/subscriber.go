@@ -57,7 +57,7 @@ func (s *Subscriber) handleInternalReceive(message Message) {
 
 	// TODO: not sure how to handle type safety and wildcard topics
 	// TODO: fix hack usage for the bridge
-	if !usingWildcard && subscription.topicType != "__mqtt_to_glue_bridge__" && subscription.topicType != message.TopicType {
+	if !usingWildcard && message.TopicType != "__mqtt_to_glue_bridge__" && message.TopicType != subscription.topicType {
 		log.Printf(
 			"warning: expected type %#v for topic %#v but got %#v; message was %#+v",
 			subscription.topicType,
