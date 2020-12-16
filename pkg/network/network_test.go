@@ -39,6 +39,7 @@ func TestIntegration_Manager(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	time.Sleep(time.Second * 1)
 
 	err = m2.Send("239.255.192.137:27320", []byte("Hello, world!"))
 	if err != nil {
@@ -60,6 +61,7 @@ func TestIntegration_Manager(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	time.Sleep(time.Second * 1)
 
 	err = m2.Send("127.0.0.1:27321", []byte("Hello, world!"))
 	if err != nil {

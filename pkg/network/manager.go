@@ -10,8 +10,8 @@ type senderKey struct {
 }
 
 type receiverKey struct {
-	rawDstAddr string
-	intfcName  string
+	rawDstAddr    string
+	interfaceName string
 }
 
 type Manager struct {
@@ -40,7 +40,7 @@ func (m *Manager) GetSender(
 	var err error
 
 	sender, ok := m.senderBySenderKey[senderKey]
-	if !ok {
+	if !ok || sender == nil {
 		sender = NewSender(rawDstAddr)
 
 		err = sender.Open()
@@ -56,11 +56,11 @@ func (m *Manager) GetSender(
 
 func (m *Manager) GetReceiver(
 	rawDstAddr string,
-	intfcName string,
+	interfaceName string,
 ) (*Receiver, error) {
 	receiverKey := receiverKey{
-		rawDstAddr: rawDstAddr,
-		intfcName:  intfcName,
+		rawDstAddr:    rawDstAddr,
+		interfaceName: interfaceName,
 	}
 
 	m.mu.Lock()
@@ -69,8 +69,8 @@ func (m *Manager) GetReceiver(
 	var err error
 
 	receiver, ok := m.receiverByReceiverKey[receiverKey]
-	if !ok {
-		receiver = NewReceiver(rawDstAddr, intfcName)
+	if !ok || receiver == nil {
+		receiver = NewReceiver(rawDstAddr, interfaceName)
 
 		err = receiver.Open()
 		if err != nil {
@@ -104,30 +104,20 @@ func (m *Manager) Send(
 		return err
 	}
 
-	for i := 0; i < 2; i++ {
-		err = sender.Send(b)
-		if err != nil {
-			sender.Close()
-			err = sender.Open()
-			if err != nil {
-				return err
-			}
-
-			continue
-		}
-
-		break
+	err = sender.Send(b)
+	if err != nil {
+		sender.Close()
 	}
 
-	return nil
+	return err
 }
 
 func (m *Manager) RegisterCallback(
 	rawDstAddr string,
-	intfcName string,
+	interfaceName string,
 	callback func(*net.UDPAddr, []byte),
 ) error {
-	receiver, err := m.GetReceiver(rawDstAddr, intfcName)
+	receiver, err := m.GetReceiver(rawDstAddr, interfaceName)
 	if err != nil {
 		return err
 	}
@@ -137,10 +127,10 @@ func (m *Manager) RegisterCallback(
 
 func (m *Manager) UnregisterCallback(
 	rawDstAddr string,
-	intfcName string,
+	interfaceName string,
 	callback func(*net.UDPAddr, []byte),
 ) error {
-	receiver, err := m.GetReceiver(rawDstAddr, intfcName)
+	receiver, err := m.GetReceiver(rawDstAddr, interfaceName)
 	if err != nil {
 		return err
 	}

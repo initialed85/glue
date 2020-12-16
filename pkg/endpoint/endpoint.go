@@ -105,6 +105,7 @@ func NewManagerSimple() (*Manager, error) {
 		return nil, err
 	}
 
+	// TODO: fix magic numbers and magic strings
 	return NewManager(
 		1,
 		endpointID,

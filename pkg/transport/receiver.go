@@ -14,7 +14,7 @@ import (
 type Receiver struct {
 	networkID      int64
 	listenPort     int
-	intfcName      string
+	interfaceName      string
 	networkManager *network.Manager
 	sender         *Sender
 	onReceive      func(types.Container)
@@ -23,7 +23,7 @@ type Receiver struct {
 func NewReceiver(
 	networkID int64,
 	listenPort int,
-	intfcName string,
+	interfaceName string,
 	networkManager *network.Manager,
 	sender *Sender,
 	onReceive func(types.Container),
@@ -31,7 +31,7 @@ func NewReceiver(
 	r := Receiver{
 		networkID:      networkID,
 		listenPort:     listenPort,
-		intfcName:      intfcName,
+		interfaceName:      interfaceName,
 		networkManager: networkManager,
 		sender:         sender,
 		onReceive:      onReceive,
@@ -81,7 +81,7 @@ func (r *Receiver) handleReceive(srcAddr *net.UDPAddr, data []byte) {
 func (r *Receiver) Start() {
 	err := r.networkManager.RegisterCallback(
 		fmt.Sprintf("0.0.0.0:%v", r.listenPort),
-		r.intfcName,
+		r.interfaceName,
 		r.handleReceive,
 	)
 	if err != nil {
@@ -92,7 +92,7 @@ func (r *Receiver) Start() {
 func (r *Receiver) Stop() {
 	err := r.networkManager.UnregisterCallback(
 		fmt.Sprintf("0.0.0.0:%v", r.listenPort),
-		r.intfcName,
+		r.interfaceName,
 		r.handleReceive,
 	)
 	if err != nil {

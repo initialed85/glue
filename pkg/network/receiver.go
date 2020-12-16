@@ -60,24 +60,25 @@ func GetReceiverConn(addr *net.UDPAddr, intfc *net.Interface) (conn *net.UDPConn
 }
 
 type Receiver struct {
-	rawDstAddr string
-	intfcName  string
-	dstAddr    *net.UDPAddr
-	srcAddr    *net.UDPAddr
-	conn       *net.UDPConn
-	mu         sync.Mutex
-	worker     *worker.BlockedWorker
-	callbacks  map[ksuid.KSUID]func(*net.UDPAddr, []byte)
+	rawDstAddr    string
+	interfaceName string
+	dstAddr       *net.UDPAddr
+	srcAddr       *net.UDPAddr
+	conn          *net.UDPConn
+	mu            sync.Mutex
+	opened        bool
+	worker        *worker.BlockedWorker
+	callbacks     map[ksuid.KSUID]func(*net.UDPAddr, []byte)
 }
 
 func NewReceiver(
 	rawDstAddr string,
-	intfcName string,
+	interfaceName string,
 ) *Receiver {
 	r := Receiver{
-		rawDstAddr: rawDstAddr,
-		intfcName:  intfcName,
-		callbacks:  make(map[ksuid.KSUID]func(*net.UDPAddr, []byte)),
+		rawDstAddr:    rawDstAddr,
+		interfaceName: interfaceName,
+		callbacks:     make(map[ksuid.KSUID]func(*net.UDPAddr, []byte)),
 	}
 
 	r.worker = worker.NewBlockedWorker(
@@ -92,11 +93,19 @@ func NewReceiver(
 func (r *Receiver) work() {
 	r.mu.Lock()
 	conn := r.conn
-	r.mu.Unlock()
 
 	if conn == nil {
-		return
+		r.close()
+		err := r.open()
+		if err != nil {
+			r.close()
+			r.mu.Unlock()
+			time.Sleep(Timeout)
+			return
+		}
+		conn = r.conn
 	}
+	r.mu.Unlock()
 
 	err := conn.SetDeadline(time.Now().Add(Timeout))
 	if err != nil {
@@ -177,15 +186,8 @@ func (r *Receiver) UnregisterCallback(
 	return nil
 }
 
-func (r *Receiver) Open() error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	if r.conn != nil {
-		return fmt.Errorf("cannot open, already opened")
-	}
-
-	dstAddr, intfc, srcAddr, err := GetAddressesAndInterfaces(r.intfcName, r.rawDstAddr)
+func (r *Receiver) open() error {
+	dstAddr, intfc, srcAddr, err := GetAddressesAndInterfaces(r.interfaceName, r.rawDstAddr)
 	if err != nil {
 		return err
 	}
@@ -199,28 +201,47 @@ func (r *Receiver) Open() error {
 	r.srcAddr = srcAddr
 	r.conn = conn
 
-	r.worker.Start()
-
 	log.Printf("receiver opened: dst=%+#v, src=%#+v", r.dstAddr.String(), r.srcAddr.String())
 
 	return nil
+}
+
+func (r *Receiver) Open() error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if r.opened {
+		return fmt.Errorf("cannot open, already opened")
+	}
+
+	r.worker.Start()
+
+	r.opened = true
+
+	return nil
+}
+
+func (r *Receiver) close() {
+	if r.conn != nil {
+		_ = r.conn.Close()
+		log.Printf("receiver closed: dst=%+#v, src=%#+v", r.dstAddr.String(), r.srcAddr.String())
+	}
+
+	r.dstAddr = nil
+	r.srcAddr = nil
+	r.conn = nil
 }
 
 func (r *Receiver) Close() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if r.conn == nil {
+	if !r.opened {
 		return
 	}
 
 	r.worker.Stop()
 
-	_ = r.conn.Close()
-
-	log.Printf("receiver closed: dst=%+#v, src=%#+v", r.dstAddr.String(), r.srcAddr.String())
-
-	r.dstAddr = nil
-	r.srcAddr = nil
-	r.conn = nil
+	r.close()
+	r.opened = false
 }

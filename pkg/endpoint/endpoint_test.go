@@ -36,7 +36,7 @@ func TestIntegration_ManagerSimple(t *testing.T) {
 	endpointManager2 := getThings()
 	startThings(endpointManager2)
 
-	time.Sleep(time.Millisecond * 100)
+	time.Sleep(time.Second * 2)
 
 	consumed1 := make(chan []byte, 65536)
 
@@ -51,7 +51,7 @@ func TestIntegration_ManagerSimple(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	time.Sleep(time.Millisecond * 100)
+	time.Sleep(time.Second * 2)
 
 	err = endpointManager2.Publish(
 		"some_topic",
@@ -80,7 +80,7 @@ func TestIntegration_ManagerSimpleSingleEndpointTalkingToItself(t *testing.T) {
 
 	startThings(endpointManager)
 
-	time.Sleep(time.Millisecond * 100)
+	time.Sleep(time.Second * 2)
 
 	consumed := make(chan topics.Message, 65536)
 
@@ -95,7 +95,7 @@ func TestIntegration_ManagerSimpleSingleEndpointTalkingToItself(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	time.Sleep(time.Millisecond * 100)
+	time.Sleep(time.Second * 2)
 
 	err = endpointManager.Publish(
 		"some_topic",
@@ -122,7 +122,7 @@ func TestIntegration_ManagerSimpleSingleEndpointTalkingToItselfWithWildcardSubsc
 
 	startThings(endpointManager)
 
-	time.Sleep(time.Millisecond * 100)
+	time.Sleep(time.Second * 2)
 
 	consumed := make(chan topics.Message, 65536)
 
@@ -137,7 +137,7 @@ func TestIntegration_ManagerSimpleSingleEndpointTalkingToItselfWithWildcardSubsc
 		log.Fatal(err)
 	}
 
-	time.Sleep(time.Millisecond * 100)
+	time.Sleep(time.Second * 2)
 
 	err = endpointManager.Publish(
 		"some_topic",

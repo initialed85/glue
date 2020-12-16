@@ -25,6 +25,7 @@ type Sender struct {
 	dstAddr    *net.UDPAddr
 	mu         sync.Mutex
 	conn       *net.UDPConn
+	opened     bool
 }
 
 func NewSender(
@@ -37,15 +38,11 @@ func NewSender(
 	return &s
 }
 
-func (s *Sender) Open() error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if s.conn != nil {
-		return fmt.Errorf("cannot open, already opened")
-	}
-
+func (s *Sender) open() error {
 	dstAddr, err := GetAddress(s.rawDstAddr)
+	if err != nil {
+		return err
+	}
 
 	conn, err := GetSenderConn(dstAddr, nil)
 	if err != nil {
@@ -60,12 +57,32 @@ func (s *Sender) Open() error {
 	return nil
 }
 
+func (s *Sender) Open() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.opened {
+		return fmt.Errorf("cannot open, already opened")
+	}
+
+	s.opened = true
+
+	return nil
+}
+
 func (s *Sender) getConn() (*net.UDPConn, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if s.conn == nil {
-		return nil, fmt.Errorf("cannot send; conn is nil (possibly not connected)")
+		s.close()
+
+		err := s.open()
+		if err != nil {
+			s.close()
+
+			return nil, err
+		}
 	}
 
 	return s.conn, nil
@@ -91,18 +108,24 @@ func (s *Sender) Send(b []byte) error {
 	return err
 }
 
+func (s *Sender) close() {
+	if s.conn != nil {
+		_ = s.conn.Close()
+		log.Printf("sender closed: dst=%#+v", s.dstAddr.String())
+	}
+
+	s.dstAddr = nil
+	s.conn = nil
+}
+
 func (s *Sender) Close() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if s.conn == nil {
+	if !s.opened {
 		return
 	}
 
-	_ = s.conn.Close()
-
-	log.Printf("sender closed: dst=%#+v", s.dstAddr.String())
-
-	s.dstAddr = nil
-	s.conn = nil
+	s.close()
+	s.opened = false
 }

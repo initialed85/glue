@@ -112,7 +112,7 @@ func GetDefaultInterfaceName() (string, error) {
 		return "", err
 	}
 
-	intfcName := ""
+	interfaceName := ""
 	for _, intfc := range intfcs {
 		addrs, err := intfc.Addrs()
 		if err != nil {
@@ -121,10 +121,10 @@ func GetDefaultInterfaceName() (string, error) {
 
 		for _, addr := range addrs {
 			if addr.(*net.IPNet).IP.Equal(defaultAddr) {
-				intfcName = intfc.Name
+				interfaceName = intfc.Name
 			}
 		}
 	}
 
-	return intfcName, nil
+	return interfaceName, nil
 }
