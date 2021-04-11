@@ -1,12 +1,14 @@
 package serialization
 
 import (
-	"github.com/segmentio/ksuid"
-	"github.com/stretchr/testify/assert"
-	"github.com/initialed85/glue/pkg/types"
 	"log"
 	"testing"
 	"time"
+
+	"github.com/segmentio/ksuid"
+	"github.com/stretchr/testify/assert"
+
+	"github.com/initialed85/glue/pkg/types"
 )
 
 func getAnnouncementContainer() types.Container {

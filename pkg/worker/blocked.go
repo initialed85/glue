@@ -45,24 +45,21 @@ func (l *BlockedWorker) run() {
 
 func (l *BlockedWorker) Start() {
 	l.mu.Lock()
-	defer l.mu.Unlock()
-
 	if l.running {
+		l.mu.Unlock()
 		return
 	}
-
 	l.running = true
-
+	l.mu.Unlock()
 	go l.run()
 }
 
 func (l *BlockedWorker) Stop() {
 	l.mu.Lock()
-	defer l.mu.Unlock()
-
 	if !l.running {
+		l.mu.Unlock()
 		return
 	}
-
 	l.running = false
+	l.mu.Unlock()
 }

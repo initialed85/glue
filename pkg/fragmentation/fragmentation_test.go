@@ -1,9 +1,10 @@
 package fragmentation
 
 import (
-	"github.com/stretchr/testify/assert"
 	"log"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFragmentAndDefragment(t *testing.T) {

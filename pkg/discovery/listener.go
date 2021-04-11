@@ -1,12 +1,13 @@
 package discovery
 
 import (
-	"github.com/initialed85/glue/pkg/network"
-	"github.com/initialed85/glue/pkg/serialization"
-	"github.com/initialed85/glue/pkg/types"
 	"log"
 	"net"
 	"time"
+
+	"github.com/initialed85/glue/pkg/network"
+	"github.com/initialed85/glue/pkg/serialization"
+	"github.com/initialed85/glue/pkg/types"
 )
 
 type Listener struct {

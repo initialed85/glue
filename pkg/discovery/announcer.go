@@ -1,13 +1,15 @@
 package discovery
 
 import (
+	"log"
+	"time"
+
 	"github.com/segmentio/ksuid"
+
 	"github.com/initialed85/glue/pkg/network"
 	"github.com/initialed85/glue/pkg/serialization"
 	"github.com/initialed85/glue/pkg/types"
 	"github.com/initialed85/glue/pkg/worker"
-	"log"
-	"time"
 )
 
 type Announcer struct {

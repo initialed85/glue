@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+set -e -x
 
 go test -v ./pkg/discovery
 go test -v ./pkg/endpoint

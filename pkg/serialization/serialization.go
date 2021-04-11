@@ -3,6 +3,7 @@ package serialization
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/initialed85/glue/pkg/types"
 )
 

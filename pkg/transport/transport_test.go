@@ -1,14 +1,16 @@
 package transport
 
 import (
-	"github.com/segmentio/ksuid"
-	"github.com/stretchr/testify/assert"
-	"github.com/initialed85/glue/pkg/discovery"
-	"github.com/initialed85/glue/pkg/network"
-	"github.com/initialed85/glue/pkg/types"
 	"log"
 	"testing"
 	"time"
+
+	"github.com/segmentio/ksuid"
+	"github.com/stretchr/testify/assert"
+
+	"github.com/initialed85/glue/pkg/discovery"
+	"github.com/initialed85/glue/pkg/network"
+	"github.com/initialed85/glue/pkg/types"
 )
 
 func getThings(endpointName string, listenPort int) (*network.Manager, ksuid.KSUID, *discovery.Manager, chan types.Container, chan types.Container, *Manager, chan types.Container) {

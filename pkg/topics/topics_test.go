@@ -131,7 +131,7 @@ func TestIntegration_Manager(t *testing.T) {
 		log.Fatal("timed out waiting for A to receive a publication from B")
 	}
 
-	stopThings(networkManager2, discoveryManager2, transportManager2, topicsManager1)
+	stopThings(networkManager2, discoveryManager2, transportManager2, topicsManager2)
 
 	select {
 	case removed := <-removed1:
@@ -147,5 +147,5 @@ func TestIntegration_Manager(t *testing.T) {
 		// noop
 	}
 
-	stopThings(networkManager1, discoveryManager1, transportManager1, topicsManager2)
+	stopThings(networkManager1, discoveryManager1, transportManager1, topicsManager1)
 }

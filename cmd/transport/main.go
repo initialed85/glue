@@ -3,15 +3,17 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
+	"time"
+
 	"github.com/segmentio/ksuid"
+
 	"github.com/initialed85/glue/pkg/discovery"
 	"github.com/initialed85/glue/pkg/network"
 	"github.com/initialed85/glue/pkg/transport"
 	"github.com/initialed85/glue/pkg/types"
 	"github.com/initialed85/glue/pkg/utils"
 	"github.com/initialed85/glue/pkg/worker"
-	"log"
-	"time"
 )
 
 func main() {

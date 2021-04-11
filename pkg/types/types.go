@@ -69,10 +69,10 @@ type Container struct {
 	NetworkID int64 `json:"network_id"`
 
 	// automatically generated per endpoint lifecycle
-	SourceEndpointID ksuid.KSUID `json:"endpoint_id"`
+	SourceEndpointID ksuid.KSUID `json:"source_endpoint_id"`
 
 	// set by user- cannot appear twice in the same network
-	SourceEndpointName string `json:"endpoint_name"`
+	SourceEndpointName string `json:"source_endpoint_name"`
 
 	// content for an announcement
 	Announcement *Announcement `json:"announcement"`

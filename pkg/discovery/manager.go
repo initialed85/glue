@@ -2,13 +2,15 @@ package discovery
 
 import (
 	"fmt"
-	"github.com/segmentio/ksuid"
-	"github.com/initialed85/glue/pkg/network"
-	"github.com/initialed85/glue/pkg/types"
-	"github.com/initialed85/glue/pkg/worker"
 	"log"
 	"sync"
 	"time"
+
+	"github.com/segmentio/ksuid"
+
+	"github.com/initialed85/glue/pkg/network"
+	"github.com/initialed85/glue/pkg/types"
+	"github.com/initialed85/glue/pkg/worker"
 )
 
 const scheduledWorkerRate = time.Millisecond * 100

@@ -36,7 +36,9 @@ func (l *ScheduledWorker) run() {
 	l.onStart()
 
 	for {
+		l.mu.Lock()
 		stop := false
+		l.mu.Unlock()
 
 		select {
 		case _ = <-l.ticker.C:
@@ -44,10 +46,13 @@ func (l *ScheduledWorker) run() {
 			stop = !l.running
 		}
 
+		l.mu.Lock()
 		if stop {
 			l.ticker.Stop()
+			l.mu.Unlock()
 			break
 		}
+		l.mu.Unlock()
 	}
 
 	l.onStop()
@@ -55,24 +60,21 @@ func (l *ScheduledWorker) run() {
 
 func (l *ScheduledWorker) Start() {
 	l.mu.Lock()
-	defer l.mu.Unlock()
-
 	if l.running {
+		l.mu.Unlock()
 		return
 	}
-
 	l.running = true
-
+	l.mu.Unlock()
 	go l.run()
 }
 
 func (l *ScheduledWorker) Stop() {
 	l.mu.Lock()
-	defer l.mu.Unlock()
-
 	if !l.running {
+		l.mu.Unlock()
 		return
 	}
-
 	l.running = false
+	l.mu.Unlock()
 }

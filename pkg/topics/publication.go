@@ -95,6 +95,8 @@ func (p *Publication) Publish(
 	message := Message{
 		Timestamp:      time.Now(),
 		Expiry:         expiry,
+		EndpointID:     p.endpointID,
+		EndpointName:   p.endpointName,
 		SequenceNumber: p.sequenceNumber,
 		TopicName:      p.topicName,
 		TopicType:      p.topicType,

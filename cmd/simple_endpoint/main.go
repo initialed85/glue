@@ -36,7 +36,7 @@ func main() {
 			err := endpointManager.Publish(
 				*topicName,
 				"some_type",
-				time.Second,
+				time.Second*300,
 				[]byte(fmt.Sprintf("%v", sequence)),
 			)
 			if err != nil {
@@ -46,11 +46,12 @@ func main() {
 			sequence++
 		},
 		func() {},
-		time.Millisecond*1000,
+		time.Millisecond*100,
 	)
 
-	var lastSequence int64 = 0
 	lastTimestamp := time.Now()
+	var lastSequence int64 = 0
+	var lostSyncCount int64 = 0
 
 	if *sendMessages {
 		scheduleWorker.Start()
@@ -60,22 +61,26 @@ func main() {
 			*topicName,
 			"some_type",
 			func(message topics.Message) {
-				sequence = lastSequence
-
-				log.Printf(
-					"from=%#+v, age=%v, seq=%v, seq_diff=%v",
-					message.EndpointName,
-					message.Timestamp.Sub(lastTimestamp),
-					sequence,
-					sequence-lastSequence,
-				)
-
-				lastSequence, err = strconv.ParseInt(string(message.Payload), 10, 64)
+				sequence, err = strconv.ParseInt(string(message.Payload), 10, 64)
 				if err != nil {
 					log.Print(err)
 				}
 
+				log.Printf(
+					"from=%#+v, age=%v, seq=%v, seq_diff=%v, lost_sync_count=%v",
+					message.EndpointName,
+					message.Timestamp.Sub(lastTimestamp),
+					sequence,
+					sequence-lastSequence,
+					lostSyncCount,
+				)
+
+				if sequence-lastSequence > 1 {
+					lostSyncCount += sequence - lastSequence - 1
+				}
+
 				lastTimestamp = message.Timestamp
+				lastSequence = sequence
 			},
 		)
 		if err != nil {

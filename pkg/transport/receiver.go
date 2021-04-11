@@ -14,7 +14,7 @@ import (
 type Receiver struct {
 	networkID      int64
 	listenPort     int
-	interfaceName      string
+	interfaceName  string
 	networkManager *network.Manager
 	sender         *Sender
 	onReceive      func(types.Container)
@@ -31,7 +31,7 @@ func NewReceiver(
 	r := Receiver{
 		networkID:      networkID,
 		listenPort:     listenPort,
-		interfaceName:      interfaceName,
+		interfaceName:  interfaceName,
 		networkManager: networkManager,
 		sender:         sender,
 		onReceive:      onReceive,

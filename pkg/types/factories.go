@@ -1,8 +1,9 @@
 package types
 
 import (
-	"github.com/segmentio/ksuid"
 	"time"
+
+	"github.com/segmentio/ksuid"
 )
 
 func GetAnnouncementContainer(

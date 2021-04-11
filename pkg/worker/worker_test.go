@@ -1,10 +1,12 @@
 package worker
 
 import (
-	"github.com/stretchr/testify/assert"
-	"github.com/initialed85/glue/internal/test_utils"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/initialed85/glue/internal/test_utils"
 )
 
 type MockThing struct {
