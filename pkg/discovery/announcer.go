@@ -2,6 +2,7 @@ package discovery
 
 import (
 	"log"
+	"net"
 	"time"
 
 	"github.com/segmentio/ksuid"
@@ -13,39 +14,42 @@ import (
 )
 
 type Announcer struct {
-	scheduledWorker  *worker.ScheduledWorker
-	networkID        int64
-	endpointID       ksuid.KSUID
-	endpointName     string
-	listenPort       int
-	multicastAddress string
-	interfaceName    string
-	rate             time.Duration
-	networkManager   *network.Manager
-	onSend           func(types.Container)
+	scheduledWorker        *worker.ScheduledWorker
+	networkID              int64
+	endpointID             ksuid.KSUID
+	endpointName           string
+	listenAddress          *net.UDPAddr
+	discoveryListenAddress *net.UDPAddr
+	discoveryTargetAddress *net.UDPAddr
+	interfaceName          string
+	rate                   time.Duration
+	networkManager         *network.Manager
+	onSend                 func(*types.Container)
 }
 
 func NewAnnouncer(
 	networkID int64,
 	endpointID ksuid.KSUID,
 	endpointName string,
-	listenPort int,
-	multicastAddress string,
+	listenAddress *net.UDPAddr,
+	discoveryListenAddress *net.UDPAddr,
+	discoveryTargetAddress *net.UDPAddr,
 	interfaceName string,
 	rate time.Duration,
 	networkManager *network.Manager,
-	onSend func(types.Container),
+	onSend func(*types.Container),
 ) *Announcer {
 	a := Announcer{
-		networkID:        networkID,
-		endpointID:       endpointID,
-		endpointName:     endpointName,
-		listenPort:       listenPort,
-		multicastAddress: multicastAddress,
-		interfaceName:    interfaceName,
-		rate:             rate,
-		networkManager:   networkManager,
-		onSend:           onSend,
+		networkID:              networkID,
+		endpointID:             endpointID,
+		endpointName:           endpointName,
+		listenAddress:          listenAddress,
+		discoveryListenAddress: discoveryListenAddress,
+		discoveryTargetAddress: discoveryTargetAddress,
+		interfaceName:          interfaceName,
+		rate:                   rate,
+		networkManager:         networkManager,
+		onSend:                 onSend,
 	}
 
 	a.scheduledWorker = worker.NewScheduledWorker(
@@ -59,21 +63,41 @@ func NewAnnouncer(
 }
 
 func (a *Announcer) work() {
-	rawSrcAddr, err := a.networkManager.GetRawSrcAddr(a.multicastAddress)
-	if err != nil {
-		log.Printf("warning: %v", err)
+	if a.discoveryTargetAddress == nil {
 		return
+	}
+
+	srcAddr, err := a.networkManager.GetRawSrcAddr(a.discoveryTargetAddress)
+	if err != nil {
+		log.Printf("warning: announcer failed to get src addr for %v: %v", a.discoveryTargetAddress.String(), err)
+		return
+	}
+
+	discoveryListenAddr := &net.UDPAddr{
+		IP:   srcAddr.IP,
+		Port: a.discoveryListenAddress.Port,
+		Zone: srcAddr.Zone,
+	}
+
+	listenAddr := &net.UDPAddr{
+		IP:   srcAddr.IP,
+		Port: a.listenAddress.Port,
+		Zone: srcAddr.Zone,
 	}
 
 	container := types.GetAnnouncementContainer(
 		time.Now(),
-		rawSrcAddr,
+		srcAddr.String(),
 		a.networkID,
 		a.endpointID,
 		a.endpointName,
 		a.rate,
-		a.listenPort,
+		discoveryListenAddr,
+		a.discoveryTargetAddress,
+		listenAddr,
 	)
+
+	container.SentTo = a.discoveryTargetAddress.String()
 
 	data, err := serialization.Serialize(container)
 	if err != nil {
@@ -81,7 +105,9 @@ func (a *Announcer) work() {
 		return
 	}
 
-	err = a.networkManager.Send(a.multicastAddress, data)
+	// log.Printf("%v -> %v; send announcement for %v", srcAddr.String(), a.discoveryTargetAddress.String(), container.SourceEndpointName)
+
+	err = a.networkManager.Send(a.discoveryTargetAddress, data)
 	if err != nil {
 		log.Printf("warning: %v", err)
 		return

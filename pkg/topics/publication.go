@@ -1,25 +1,25 @@
 package topics
 
 import (
-	"encoding/json"
 	"log"
 	"sync"
 	"time"
 
 	"github.com/segmentio/ksuid"
+	"github.com/vmihailenco/msgpack/v5"
 
 	"github.com/initialed85/glue/pkg/transport"
 	"github.com/initialed85/glue/pkg/worker"
 )
 
 // TODO: revise? configurable?
-const MessageTimeout = time.Second * 1
-const MessageExpiry = time.Second * 5
+const MessageTimeout = time.Millisecond * 100
+const MessageExpiry = time.Millisecond * 500
 
 type Publication struct {
 	scheduleWorker             *worker.ScheduledWorker
 	mu                         sync.Mutex
-	messageByMessageIdentifier map[MessageIdentifier]Message
+	messageByMessageIdentifier map[MessageIdentifier]*Message
 	sequenceNumber             int64
 	endpointID                 ksuid.KSUID
 	endpointName               string
@@ -38,7 +38,7 @@ func NewPublication(
 	subscriber **Subscriber,
 ) *Publication {
 	p := Publication{
-		messageByMessageIdentifier: make(map[MessageIdentifier]Message),
+		messageByMessageIdentifier: make(map[MessageIdentifier]*Message),
 		sequenceNumber:             1,
 		endpointID:                 endpointID,
 		endpointName:               endpointName,
@@ -92,7 +92,7 @@ func (p *Publication) Publish(
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	message := Message{
+	message := &Message{
 		Timestamp:      time.Now(),
 		Expiry:         expiry,
 		EndpointID:     p.endpointID,
@@ -110,8 +110,7 @@ func (p *Publication) Publish(
 		subscriber.handleInternalReceive(message)
 	}
 
-	// TODO: proper serialization
-	payload, err := json.Marshal(message)
+	payload, err := msgpack.Marshal(message)
 	if err != nil {
 		return err
 	}

@@ -20,39 +20,33 @@ func GetSenderConn(addr *net.UDPAddr, srcAddr *net.UDPAddr) (conn *net.UDPConn, 
 }
 
 type Sender struct {
-	rawDstAddr string
-	rawSrcAddr string
-	dstAddr    *net.UDPAddr
-	mu         sync.Mutex
-	conn       *net.UDPConn
-	opened     bool
+	srcAddr *net.UDPAddr
+	dstAddr *net.UDPAddr
+	mu      sync.Mutex
+	conn    *net.UDPConn
+	opened  bool
 }
 
 func NewSender(
-	rawDstAddr string,
+	dstAddr *net.UDPAddr,
 ) *Sender {
 	s := Sender{
-		rawDstAddr: rawDstAddr,
+		dstAddr: dstAddr,
 	}
 
 	return &s
 }
 
 func (s *Sender) open() error {
-	dstAddr, err := GetAddress(s.rawDstAddr)
+	conn, err := GetSenderConn(s.dstAddr, s.srcAddr)
 	if err != nil {
 		return err
 	}
 
-	conn, err := GetSenderConn(dstAddr, nil)
-	if err != nil {
-		return err
-	}
-
-	s.dstAddr = dstAddr
 	s.conn = conn
+	s.srcAddr = conn.LocalAddr().(*net.UDPAddr)
 
-	log.Printf("sender opened: dst=%#+v", dstAddr.String())
+	log.Printf("sender opened: dst=%#+v", s.dstAddr.String())
 
 	return nil
 }
@@ -79,6 +73,8 @@ func (s *Sender) getConn() (*net.UDPConn, error) {
 
 		err := s.open()
 		if err != nil {
+			log.Printf("warning: sender had error trying to open: %v", err)
+
 			s.close()
 
 			return nil, err
@@ -88,13 +84,13 @@ func (s *Sender) getConn() (*net.UDPConn, error) {
 	return s.conn, nil
 }
 
-func (s *Sender) GetRawSrcAddr() (string, error) {
+func (s *Sender) GetRawSrcAddr() (*net.UDPAddr, error) {
 	conn, err := s.getConn()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return conn.LocalAddr().String(), nil
+	return conn.LocalAddr().(*net.UDPAddr), nil
 }
 
 func (s *Sender) Send(b []byte) error {
@@ -104,8 +100,11 @@ func (s *Sender) Send(b []byte) error {
 	}
 
 	_, err = conn.Write(b)
+	if err != nil {
+		return err
+	}
 
-	return err
+	return nil
 }
 
 func (s *Sender) close() {
@@ -114,7 +113,7 @@ func (s *Sender) close() {
 		log.Printf("sender closed: dst=%#+v", s.dstAddr.String())
 	}
 
-	s.dstAddr = nil
+	s.srcAddr = nil
 	s.conn = nil
 }
 

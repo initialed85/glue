@@ -1,7 +1,6 @@
 package transport
 
 import (
-	"fmt"
 	"log"
 	"net"
 	"time"
@@ -13,24 +12,24 @@ import (
 
 type Receiver struct {
 	networkID      int64
-	listenPort     int
+	listenAddress  *net.UDPAddr
 	interfaceName  string
 	networkManager *network.Manager
 	sender         *Sender
-	onReceive      func(types.Container)
+	onReceive      func(*types.Container)
 }
 
 func NewReceiver(
 	networkID int64,
-	listenPort int,
+	listenAddress *net.UDPAddr,
 	interfaceName string,
 	networkManager *network.Manager,
 	sender *Sender,
-	onReceive func(types.Container),
+	onReceive func(*types.Container),
 ) *Receiver {
 	r := Receiver{
 		networkID:      networkID,
-		listenPort:     listenPort,
+		listenAddress:  listenAddress,
 		interfaceName:  interfaceName,
 		networkManager: networkManager,
 		sender:         sender,
@@ -40,11 +39,10 @@ func NewReceiver(
 	return &r
 }
 
-func (r *Receiver) handleReceive(srcAddr *net.UDPAddr, data []byte) {
+func (r *Receiver) handleReceive(srcAddr *net.UDPAddr, dstAddr *net.UDPAddr, data []byte) {
 	var err error
 
 	receivedTimestamp := time.Now()
-	receivedAddress := srcAddr.String()
 
 	container, err := serialization.Deserialize(data)
 	if err != nil {
@@ -53,34 +51,43 @@ func (r *Receiver) handleReceive(srcAddr *net.UDPAddr, data []byte) {
 	}
 
 	container.ReceivedTimestamp = receivedTimestamp
-	container.ReceivedAddress = receivedAddress
+	container.ReceivedFrom = srcAddr.String()
+	container.ReceivedBy = dstAddr.String()
 
-	// in all cases sendAck an markAck so that the sender stops trying to sendAck it (even if it's not for us,
+	if container.NetworkID != r.networkID {
+		log.Printf("warning: ignoring container because NetworkID %v unknown in %v", r.networkID, container.String())
+		return
+	}
+
+	if container.Frame == nil {
+		log.Printf("error: unexpectedly received non-frame %#+v", container)
+	}
+
+	// in all cases sendAck marks a NeedsAck so that the sender stops trying to sendAck it (even if it's not for us,
 	// no amount of resending it to us will fix that)
 	if container.Frame.NeedsAck {
 		err = r.sender.SendAck(container)
 		if err != nil {
-			log.Printf("warning: attempt to send ack returned %v for %#+v", err, container)
+			log.Printf("warning: attempt to send ack returned %v for %v", err, container.String())
 		}
 	}
 
-	if container.NetworkID != r.networkID {
-		log.Printf("warning: ignoring container because NetworkID %#v unknown in %#+v", r.networkID, container)
-		return
-	}
-
 	if container.Frame.IsAck {
+		// log.Printf("%v -> %v; receive ack frame from %v", srcAddr.String(), dstAddr, container.SourceEndpointName)
+
 		// TODO: maybe some sort of background worker pool vs unbounded amount of goroutines
 		go r.sender.MarkAck(container)
 		return
 	}
+
+	// log.Printf("%v -> %v; receive data frame from %v", srcAddr.String(), dstAddr, container.SourceEndpointName)
 
 	r.onReceive(container)
 }
 
 func (r *Receiver) Start() {
 	err := r.networkManager.RegisterCallback(
-		fmt.Sprintf("0.0.0.0:%v", r.listenPort),
+		r.listenAddress,
 		r.interfaceName,
 		r.handleReceive,
 	)
@@ -91,7 +98,7 @@ func (r *Receiver) Start() {
 
 func (r *Receiver) Stop() {
 	err := r.networkManager.UnregisterCallback(
-		fmt.Sprintf("0.0.0.0:%v", r.listenPort),
+		r.listenAddress,
 		r.interfaceName,
 		r.handleReceive,
 	)

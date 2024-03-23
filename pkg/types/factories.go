@@ -1,6 +1,7 @@
 package types
 
 import (
+	"net"
 	"time"
 
 	"github.com/segmentio/ksuid"
@@ -8,22 +9,29 @@ import (
 
 func GetAnnouncementContainer(
 	sentTimestamp time.Time,
-	sentAddress string,
+	sentBy string,
 	networkID int64,
 	sourceEndpointID ksuid.KSUID,
 	sourceEndpointName string,
 	sentRate time.Duration,
-	listenPort int,
-) Container {
-	return Container{
+	discoveryListenAddress *net.UDPAddr,
+	discoveryTargetAddress *net.UDPAddr,
+	listenAddress *net.UDPAddr,
+) *Container {
+	return &Container{
 		SentTimestamp:      sentTimestamp,
-		SentAddress:        sentAddress,
+		SentBy:             sentBy,
 		NetworkID:          networkID,
 		SourceEndpointID:   sourceEndpointID,
 		SourceEndpointName: sourceEndpointName,
 		Announcement: &Announcement{
-			SentRate:   sentRate,
-			ListenPort: listenPort,
+			SentRate:               sentRate,
+			ListenPort:             listenAddress.Port,
+			ListenAddr:             listenAddress,
+			DiscoveryListenAddress: discoveryListenAddress.String(),
+			DiscoveryListenAddr:    discoveryListenAddress,
+			DiscoveryTargetAddress: discoveryTargetAddress.String(),
+			DiscoveryTargetAddr:    discoveryTargetAddress,
 		},
 	}
 }
@@ -42,8 +50,8 @@ func GetFrameContainer(
 	needsAck bool,
 	isAck bool,
 	payload []byte,
-) Container {
-	return Container{
+) *Container {
+	return &Container{
 		NetworkID:          networkID,
 		SourceEndpointID:   sourceEndpointID,
 		SourceEndpointName: sourceEndpointName,
@@ -67,9 +75,9 @@ func GetFrameAckContainer(
 	networkID int64,
 	sourceEndpointID ksuid.KSUID,
 	sourceEndpointName string,
-	container Container,
-) Container {
-	return Container{
+	container *Container,
+) *Container {
+	return &Container{
 		NetworkID:          networkID,
 		SourceEndpointID:   sourceEndpointID,
 		SourceEndpointName: sourceEndpointName,

@@ -1,9 +1,7 @@
 package transport
 
 import (
-	"fmt"
 	"log"
-	"strings"
 	"sync"
 	"time"
 
@@ -16,12 +14,12 @@ import (
 	"github.com/initialed85/glue/pkg/worker"
 )
 
-const scheduledWorkerRate = time.Millisecond * 100
+const scheduledWorkerRate = time.Second * 1
 
 type Sender struct {
 	scheduledWorker        *worker.ScheduledWorker
 	mu                     sync.Mutex
-	sentContainerByFrameID map[ksuid.KSUID]types.Container
+	sentContainerByFrameID map[ksuid.KSUID]*types.Container
 	networkID              int64
 	endpointID             ksuid.KSUID
 	endpointName           string
@@ -37,7 +35,7 @@ func NewSender(
 	networkManager *network.Manager,
 ) *Sender {
 	s := Sender{
-		sentContainerByFrameID: make(map[ksuid.KSUID]types.Container),
+		sentContainerByFrameID: make(map[ksuid.KSUID]*types.Container),
 		networkID:              networkID,
 		endpointID:             endpointID,
 		endpointName:           endpointName,
@@ -58,8 +56,8 @@ func NewSender(
 func (s *Sender) work() {
 	now := time.Now()
 
-	toResend := make([]types.Container, 0)
-	toDelete := make([]types.Container, 0)
+	toResend := make([]*types.Container, 0)
+	toDelete := make([]*types.Container, 0)
 
 	s.mu.Lock()
 
@@ -83,31 +81,25 @@ func (s *Sender) work() {
 		// TODO: backoff multiplier if we get failures here?
 		err = s.send(container, true, true)
 		if err != nil {
-			log.Printf("warning: failed resend of frame trying to send for %#+v because of %v", container, err)
+			log.Printf("warning: failed resend of frame trying to send for %v because of %v", container.String(), err)
 			continue
 		}
 	}
-
 }
 
-func (s *Sender) send(container types.Container, permitResend bool, isResend bool) error {
+func (s *Sender) send(container *types.Container, permitResend bool, isResend bool) error {
 	announcementContainer, err := s.discoveryManager.GetLastAnnouncementContainerByEndpointName(container.Frame.DestinationEndpointName)
 	if err != nil {
 		return err
 	}
 
-	rawDstAddr := fmt.Sprintf(
-		"%v:%v",
-		strings.Split(announcementContainer.ReceivedAddress, ":")[0],
-		announcementContainer.Announcement.ListenPort,
-	)
-
-	rawSrcAddr, err := s.networkManager.GetRawSrcAddr(rawDstAddr)
+	rawSrcAddr, err := s.networkManager.GetRawSrcAddr(announcementContainer.Announcement.ListenAddr)
 	if err != nil {
 		return err
 	}
 
-	container.SentAddress = rawSrcAddr
+	container.SentBy = rawSrcAddr.String()
+	container.SentTo = announcementContainer.Announcement.ListenAddr.String()
 
 	now := time.Now()
 
@@ -129,7 +121,19 @@ func (s *Sender) send(container types.Container, permitResend bool, isResend boo
 		return err
 	}
 
-	return s.networkManager.Send(rawDstAddr, data)
+	// attemptType := "sent"
+	// if isResend {
+	// 	attemptType = "resent"
+	// }
+
+	// frameType := "data"
+	// if container.Frame.IsAck {
+	// 	frameType = "ack"
+	// }
+
+	// log.Printf("%v -> %v; %v %v frame to %v", attemptType, frameType, rawSrcAddr.String(), announcementContainer.Announcement.ListenAddr.String(), container.SourceEndpointName)
+
+	return s.networkManager.Send(announcementContainer.Announcement.ListenAddr, data)
 }
 
 func (s *Sender) Send(
@@ -174,6 +178,10 @@ func (s *Sender) Broadcast(
 ) {
 	var err error
 	for _, container := range s.discoveryManager.GetAllAnnouncementContainers() {
+		if container.SourceEndpointID == s.endpointID {
+			continue
+		}
+
 		err = s.Send(
 			resendTimeout,
 			resendExpiry,
@@ -187,12 +195,12 @@ func (s *Sender) Broadcast(
 			payload,
 		)
 		if err != nil {
-			log.Printf("warning: failed to broadcast %#+v because %v for %#+v", payload, err, container)
+			log.Printf("warning: failed to broadcast %v bytes because %v for %v", len(payload), err, container.String())
 		}
 	}
 }
 
-func (s *Sender) SendAck(container types.Container) error {
+func (s *Sender) SendAck(container *types.Container) error {
 	ackContainer := types.GetFrameAckContainer(
 		s.networkID,
 		s.endpointID,
@@ -203,13 +211,13 @@ func (s *Sender) SendAck(container types.Container) error {
 	return s.send(ackContainer, false, false)
 }
 
-func (s *Sender) MarkAck(container types.Container) {
+func (s *Sender) MarkAck(container *types.Container) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	_, ok := s.sentContainerByFrameID[container.Frame.FrameID]
 	if !ok {
-		log.Printf("warning: failed marking messge as ack'd because it's unknown: %#+v", container)
+		log.Printf("warning: failed marking messge as ack'd because it's unknown: %v", container.String())
 		return
 	}
 

@@ -15,8 +15,8 @@ func TestIntegration_Manager(t *testing.T) {
 	var err error
 
 	lastData := make([]byte, 0)
-	callback := func(addr *net.UDPAddr, data []byte) {
-		log.Printf("addr=%#+v, data=%#+v", addr.String(), string(data))
+	callback := func(srcAddr *net.UDPAddr, dstAddr *net.UDPAddr, data []byte) {
+		log.Printf("srcAddr=%#+v, dstAddr=%#+v, data=%#+v", srcAddr.String(), dstAddr.String(), string(data))
 		lastData = data
 	}
 
@@ -35,20 +35,22 @@ func TestIntegration_Manager(t *testing.T) {
 	// multicast test
 	//
 
-	err = m1.RegisterCallback("239.255.192.137:27320", "en0", callback)
+	multicastAddr, _ := net.ResolveUDPAddr("udp4", "239.255.192.137:27320")
+
+	err = m1.RegisterCallback(multicastAddr, "en0", callback)
 	if err != nil {
 		log.Fatal(err)
 	}
 	time.Sleep(time.Second * 1)
 
-	err = m2.Send("239.255.192.137:27320", []byte("Hello, world!"))
+	err = m2.Send(multicastAddr, []byte("Hello, world!"))
 	if err != nil {
 		log.Fatal(err)
 	}
 	time.Sleep(time.Second * 1)
 	assert.Equal(t, []byte("Hello, world!"), lastData)
 
-	err = m1.UnregisterCallback("239.255.192.137:27320", "en0", callback)
+	err = m1.UnregisterCallback(multicastAddr, "en0", callback)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -57,20 +59,23 @@ func TestIntegration_Manager(t *testing.T) {
 	// unicast test
 	//
 
-	err = m1.RegisterCallback("0.0.0.0:27321", "lo0", callback)
+	unicastListenAddr, _ := net.ResolveUDPAddr("udp4", "0.0.0.0:27321")
+	unicastSendAddr, _ := net.ResolveUDPAddr("udp4", "127.0.0.1:27321")
+
+	err = m1.RegisterCallback(unicastListenAddr, "lo0", callback)
 	if err != nil {
 		log.Fatal(err)
 	}
 	time.Sleep(time.Second * 1)
 
-	err = m2.Send("127.0.0.1:27321", []byte("Hello, world!"))
+	err = m2.Send(unicastSendAddr, []byte("Hello, world!"))
 	if err != nil {
 		log.Fatal(err)
 	}
 	time.Sleep(time.Second * 1)
 	assert.Equal(t, []byte("Hello, world!"), lastData)
 
-	err = m1.UnregisterCallback("0.0.0.0:27321", "lo0", callback)
+	err = m1.UnregisterCallback(unicastListenAddr, "lo0", callback)
 	if err != nil {
 		log.Fatal(err)
 	}

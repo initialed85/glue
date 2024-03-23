@@ -1,11 +1,11 @@
 package topics
 
 import (
-	"encoding/json"
 	"log"
 	"sync"
 
 	"github.com/segmentio/ksuid"
+	"github.com/vmihailenco/msgpack/v5"
 
 	"github.com/initialed85/glue/pkg/transport"
 	"github.com/initialed85/glue/pkg/types"
@@ -37,7 +37,7 @@ func NewSubscriber(
 	return &s
 }
 
-func (s *Subscriber) handleInternalReceive(message Message) {
+func (s *Subscriber) handleInternalReceive(message *Message) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -71,12 +71,12 @@ func (s *Subscriber) handleInternalReceive(message Message) {
 	subscription.HandleReceive(message)
 }
 
-func (s *Subscriber) HandleReceive(container types.Container) {
-	var message Message
+func (s *Subscriber) HandleReceive(container *types.Container) {
+	var message *Message
 
-	err := json.Unmarshal(container.Frame.Payload, &message)
+	err := msgpack.Unmarshal(container.Frame.Payload, &message)
 	if err != nil {
-		log.Printf("warning: attempt to unmarshal returned %#+v for %#+v from %#+v", err, string(container.Frame.Payload), container.ReceivedAddress)
+		log.Printf("warning: attempt to unmarshal returned %#+v for %#+v from %#+v", err, string(container.Frame.Payload), container.ReceivedFrom)
 	}
 
 	s.handleInternalReceive(message)
@@ -86,7 +86,7 @@ func (s *Subscriber) HandleReceive(container types.Container) {
 func (s *Subscriber) subscribe(
 	topicName string,
 	topicType string,
-	onReceive func(Message),
+	onReceive func(*Message),
 ) error {
 	subscription, ok := s.subscriptionByTopicName[topicName]
 	if !ok {
@@ -110,7 +110,7 @@ func (s *Subscriber) subscribe(
 func (s *Subscriber) Subscribe(
 	topicName string,
 	topicType string,
-	onReceive func(Message),
+	onReceive func(*Message),
 ) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

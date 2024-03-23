@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"net"
 	"time"
 
 	"github.com/segmentio/ksuid"
@@ -16,29 +17,29 @@ type Manager struct {
 	networkID        int64
 	endpointID       ksuid.KSUID
 	endpointName     string
-	listenPort       int
-	interfaceName    string
+	listenAddress    *net.UDPAddr
+	listenInterface  string
 	discoveryManager *discovery.Manager
 	networkManager   *network.Manager
-	onReceive        func(types.Container)
+	onReceive        func(*types.Container)
 }
 
 func NewManager(
 	networkID int64,
 	endpointID ksuid.KSUID,
 	endpointName string,
-	listenPort int,
-	interfaceName string,
+	listenAddress *net.UDPAddr,
+	listenInterface string,
 	discoveryManager *discovery.Manager,
 	networkManager *network.Manager,
-	onReceive func(types.Container),
+	onReceive func(*types.Container),
 ) *Manager {
 	m := Manager{
 		networkID:        networkID,
 		endpointID:       endpointID,
 		endpointName:     endpointName,
-		listenPort:       listenPort,
-		interfaceName:    interfaceName,
+		listenAddress:    listenAddress,
+		listenInterface:  listenInterface,
 		discoveryManager: discoveryManager,
 		networkManager:   networkManager,
 		onReceive:        onReceive,
@@ -54,8 +55,8 @@ func NewManager(
 
 	m.receiver = NewReceiver(
 		m.networkID,
-		m.listenPort,
-		m.interfaceName,
+		m.listenAddress,
+		m.listenInterface,
 		m.networkManager,
 		m.sender,
 		m.onReceive,

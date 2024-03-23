@@ -43,7 +43,7 @@ func TestIntegration_ManagerSimple(t *testing.T) {
 	err := endpointManager1.Subscribe(
 		"some_topic",
 		"some_type",
-		func(message topics.Message) {
+		func(message *topics.Message) {
 			consumed1 <- message.Payload
 		},
 	)
@@ -82,12 +82,12 @@ func TestIntegration_ManagerSimpleSingleEndpointTalkingToItself(t *testing.T) {
 
 	time.Sleep(time.Second * 2)
 
-	consumed := make(chan topics.Message, 65536)
+	consumed := make(chan *topics.Message, 65536)
 
 	err := endpointManager.Subscribe(
 		"some_topic",
 		"some_type",
-		func(message topics.Message) {
+		func(message *topics.Message) {
 			consumed <- message
 		},
 	)
@@ -124,12 +124,12 @@ func TestIntegration_ManagerSimpleSingleEndpointTalkingToItselfWithWildcardSubsc
 
 	time.Sleep(time.Second * 2)
 
-	consumed := make(chan topics.Message, 65536)
+	consumed := make(chan *topics.Message, 65536)
 
 	err := endpointManager.Subscribe(
 		"#",
 		"some_type",
-		func(message topics.Message) {
+		func(message *topics.Message) {
 			consumed <- message
 		},
 	)

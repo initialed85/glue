@@ -6,7 +6,7 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
-const scheduledWorkerRate = time.Millisecond * 100
+const scheduledWorkerRate = time.Second * 1
 
 type MessageType int
 

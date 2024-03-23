@@ -6,6 +6,7 @@ import (
 	"net"
 	"reflect"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -60,7 +61,6 @@ func GetReceiverConn(addr *net.UDPAddr, intfc *net.Interface) (conn *net.UDPConn
 }
 
 type Receiver struct {
-	rawDstAddr    string
 	interfaceName string
 	dstAddr       *net.UDPAddr
 	srcAddr       *net.UDPAddr
@@ -68,17 +68,17 @@ type Receiver struct {
 	mu            sync.Mutex
 	opened        bool
 	worker        *worker.BlockedWorker
-	callbacks     map[ksuid.KSUID]func(*net.UDPAddr, []byte)
+	callbacks     map[ksuid.KSUID]func(*net.UDPAddr, *net.UDPAddr, []byte)
 }
 
 func NewReceiver(
-	rawDstAddr string,
+	dstAddr *net.UDPAddr,
 	interfaceName string,
 ) *Receiver {
 	r := Receiver{
-		rawDstAddr:    rawDstAddr,
+		dstAddr:       dstAddr,
 		interfaceName: interfaceName,
-		callbacks:     make(map[ksuid.KSUID]func(*net.UDPAddr, []byte)),
+		callbacks:     make(map[ksuid.KSUID]func(*net.UDPAddr, *net.UDPAddr, []byte)),
 	}
 
 	r.worker = worker.NewBlockedWorker(
@@ -96,11 +96,16 @@ func (r *Receiver) work() {
 
 	if conn == nil {
 		r.close()
+
 		err := r.open()
 		if err != nil {
+			log.Printf("warning: failed to open receiver for %v: %v", r.dstAddr.String(), err)
+
 			r.close()
 			r.mu.Unlock()
+
 			time.Sleep(Timeout)
+
 			return
 		}
 		conn = r.conn
@@ -110,14 +115,15 @@ func (r *Receiver) work() {
 	err := conn.SetDeadline(time.Now().Add(Timeout))
 	if err != nil {
 		panic(fmt.Errorf("caught %#+v during SetDeadline; cannot continue", err))
-		return
 	}
 
 	b := make([]byte, MaxDatagramSize)
 
 	n, srcAddr, err := conn.ReadFromUDP(b)
 	if err != nil {
-		// timeout- expected
+		if !strings.Contains(err.Error(), "timeout") {
+			log.Printf("warning: Receive had error trying to read: %v", err)
+		}
 		return
 	}
 
@@ -126,13 +132,13 @@ func (r *Receiver) work() {
 	r.mu.Lock()
 	for _, callback := range r.callbacks {
 		// TODO: fix unbounded goroutine use
-		go callback(srcAddr, data)
+		go callback(srcAddr, r.dstAddr, data)
 	}
 	r.mu.Unlock()
 }
 
 func (r *Receiver) RegisterCallback(
-	callback func(*net.UDPAddr, []byte),
+	callback func(*net.UDPAddr, *net.UDPAddr, []byte),
 ) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -150,13 +156,13 @@ func (r *Receiver) RegisterCallback(
 
 	r.callbacks[identifier] = callback
 
-	log.Printf("callback registered: %#+v", r.rawDstAddr)
+	log.Printf("callback registered: %#+v", r.dstAddr.String())
 
 	return nil
 }
 
 func (r *Receiver) UnregisterCallback(
-	callback func(*net.UDPAddr, []byte),
+	callback func(*net.UDPAddr, *net.UDPAddr, []byte),
 ) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -181,13 +187,13 @@ func (r *Receiver) UnregisterCallback(
 
 	delete(r.callbacks, identifier)
 
-	log.Printf("callback unregistered: %#+v", r.rawDstAddr)
+	log.Printf("callback unregistered: %#+v", r.dstAddr.String())
 
 	return nil
 }
 
 func (r *Receiver) open() error {
-	dstAddr, intfc, srcAddr, err := GetAddressesAndInterfaces(r.interfaceName, r.rawDstAddr)
+	dstAddr, intfc, srcAddr, err := GetAddressesAndInterfaces(r.interfaceName, r.dstAddr.String())
 	if err != nil {
 		return err
 	}
@@ -208,15 +214,14 @@ func (r *Receiver) open() error {
 
 func (r *Receiver) Open() error {
 	r.mu.Lock()
-	defer r.mu.Unlock()
-
 	if r.opened {
+		r.mu.Unlock()
 		return fmt.Errorf("cannot open, already opened")
 	}
+	r.opened = true
+	r.mu.Unlock()
 
 	r.worker.Start()
-
-	r.opened = true
 
 	return nil
 }
@@ -227,7 +232,6 @@ func (r *Receiver) close() {
 		log.Printf("receiver closed: dst=%+#v, src=%#+v", r.dstAddr.String(), r.srcAddr.String())
 	}
 
-	r.dstAddr = nil
 	r.srcAddr = nil
 	r.conn = nil
 }

@@ -1,13 +1,14 @@
 package worker
 
 import (
-	"sync"
+	"context"
+	"log"
 	"time"
 )
 
 type ScheduledWorker struct {
-	mu       sync.Mutex
-	running  bool
+	ctx      context.Context
+	cancel   context.CancelFunc
 	ticker   *time.Ticker
 	onStart  func()
 	work     func()
@@ -21,8 +22,10 @@ func NewScheduledWorker(
 	onStop func(),
 	duration time.Duration,
 ) *ScheduledWorker {
+	ctx, cancel := context.WithCancel(context.Background())
 	return &ScheduledWorker{
-		running:  false,
+		ctx:      ctx,
+		cancel:   cancel,
 		onStart:  onStart,
 		work:     work,
 		onStop:   onStop,
@@ -35,46 +38,31 @@ func (l *ScheduledWorker) run() {
 
 	l.onStart()
 
+	l.work()
+
+loop:
 	for {
-		l.mu.Lock()
-		stop := false
-		l.mu.Unlock()
-
 		select {
-		case _ = <-l.ticker.C:
+		case <-l.ctx.Done():
+			break loop
+		case <-l.ticker.C:
 			l.work()
-			stop = !l.running
 		}
-
-		l.mu.Lock()
-		if stop {
-			l.ticker.Stop()
-			l.mu.Unlock()
-			break
-		}
-		l.mu.Unlock()
 	}
 
 	l.onStop()
 }
 
 func (l *ScheduledWorker) Start() {
-	l.mu.Lock()
-	if l.running {
-		l.mu.Unlock()
-		return
+	select {
+	case <-l.ctx.Done():
+		log.Panic("cannot start, already started and stopped")
+	default:
 	}
-	l.running = true
-	l.mu.Unlock()
+
 	go l.run()
 }
 
 func (l *ScheduledWorker) Stop() {
-	l.mu.Lock()
-	if !l.running {
-		l.mu.Unlock()
-		return
-	}
-	l.running = false
-	l.mu.Unlock()
+	l.cancel()
 }

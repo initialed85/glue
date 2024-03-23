@@ -1,7 +1,9 @@
 package transport
 
 import (
+	"fmt"
 	"log"
+	"net"
 	"testing"
 	"time"
 
@@ -13,29 +15,33 @@ import (
 	"github.com/initialed85/glue/pkg/types"
 )
 
-func getThings(endpointName string, listenPort int) (*network.Manager, ksuid.KSUID, *discovery.Manager, chan types.Container, chan types.Container, *Manager, chan types.Container) {
+func getThings(endpointName string, listenPort int) (*network.Manager, ksuid.KSUID, *discovery.Manager, chan *types.Container, chan *types.Container, *Manager, chan *types.Container) {
 	networkManager := network.NewManager()
 
-	added := make(chan types.Container, 65536)
-	removed := make(chan types.Container, 65536)
-	received := make(chan types.Container, 65536)
+	added := make(chan *types.Container, 65536)
+	removed := make(chan *types.Container, 65536)
+	received := make(chan *types.Container, 65536)
 
 	endpointID := ksuid.New()
+
+	unicastListenAddr, _ := net.ResolveUDPAddr("udp4", fmt.Sprintf("0.0.0.0:%v", listenPort))
+	multicastAddr, _ := net.ResolveUDPAddr("udp4", "239.192.137.1:27320")
 
 	discoveryManager := discovery.NewManager(
 		1,
 		endpointID,
 		endpointName,
-		listenPort,
-		"239.192.137.1:27320",
+		unicastListenAddr,
+		multicastAddr,
+		multicastAddr,
 		"en0",
 		time.Millisecond*100,
 		3,
 		networkManager,
-		func(container types.Container) {
+		func(container *types.Container) {
 			added <- container
 		},
-		func(container types.Container) {
+		func(container *types.Container) {
 			removed <- container
 		},
 	)
@@ -44,11 +50,11 @@ func getThings(endpointName string, listenPort int) (*network.Manager, ksuid.KSU
 		1,
 		endpointID,
 		endpointName,
-		listenPort,
+		unicastListenAddr,
 		"en0",
 		discoveryManager,
 		networkManager,
-		func(container types.Container) {
+		func(container *types.Container) {
 			received <- container
 		},
 	)

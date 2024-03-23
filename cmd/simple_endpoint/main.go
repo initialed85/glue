@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/initialed85/glue/pkg/endpoint"
+	"github.com/initialed85/glue/pkg/helpers"
 	"github.com/initialed85/glue/pkg/topics"
-	"github.com/initialed85/glue/pkg/utils"
 	"github.com/initialed85/glue/pkg/worker"
 )
 
@@ -36,7 +36,7 @@ func main() {
 			err := endpointManager.Publish(
 				*topicName,
 				"some_type",
-				time.Second*300,
+				time.Millisecond*100,
 				[]byte(fmt.Sprintf("%v", sequence)),
 			)
 			if err != nil {
@@ -46,7 +46,7 @@ func main() {
 			sequence++
 		},
 		func() {},
-		time.Millisecond*100,
+		time.Millisecond*50,
 	)
 
 	lastTimestamp := time.Now()
@@ -60,20 +60,22 @@ func main() {
 		err := endpointManager.Subscribe(
 			*topicName,
 			"some_type",
-			func(message topics.Message) {
+			func(message *topics.Message) {
 				sequence, err = strconv.ParseInt(string(message.Payload), 10, 64)
 				if err != nil {
 					log.Print(err)
 				}
 
-				log.Printf(
-					"from=%#+v, age=%v, seq=%v, seq_diff=%v, lost_sync_count=%v",
-					message.EndpointName,
-					message.Timestamp.Sub(lastTimestamp),
-					sequence,
-					sequence-lastSequence,
-					lostSyncCount,
-				)
+				if sequence%20 == 0 {
+					log.Printf(
+						"from=%#+v, age=%v, seq=%v, seq_diff=%v, lost_sync_count=%v",
+						message.EndpointName,
+						message.Timestamp.Sub(lastTimestamp),
+						sequence,
+						sequence-lastSequence,
+						lostSyncCount,
+					)
+				}
 
 				if sequence-lastSequence > 1 {
 					lostSyncCount += sequence - lastSequence - 1
@@ -89,7 +91,7 @@ func main() {
 	}
 
 	log.Print("press Ctrl + C to exit...")
-	utils.WaitForCtrlC()
+	helpers.WaitForCtrlC()
 
 	if *sendMessages {
 		scheduleWorker.Stop()

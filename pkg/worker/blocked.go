@@ -1,21 +1,25 @@
 package worker
 
 import (
-	"sync"
+	"context"
+	"log"
 	"time"
 )
 
 type BlockedWorker struct {
-	mu      sync.Mutex
-	running bool
+	ctx     context.Context
+	cancel  context.CancelFunc
 	onStart func()
 	work    func()
 	onStop  func()
 }
 
 func NewBlockedWorker(onStart func(), work func(), onStop func()) *BlockedWorker {
+	ctx, cancel := context.WithCancel(context.Background())
+
 	return &BlockedWorker{
-		running: false,
+		ctx:     ctx,
+		cancel:  cancel,
 		onStart: onStart,
 		work:    work,
 		onStop:  onStop,
@@ -25,13 +29,12 @@ func NewBlockedWorker(onStart func(), work func(), onStop func()) *BlockedWorker
 func (l *BlockedWorker) run() {
 	l.onStart()
 
+loop:
 	for {
-		l.mu.Lock()
-		stop := !l.running
-		l.mu.Unlock()
-
-		if stop {
-			break
+		select {
+		case <-l.ctx.Done():
+			break loop
+		default:
 		}
 
 		l.work()
@@ -44,22 +47,15 @@ func (l *BlockedWorker) run() {
 }
 
 func (l *BlockedWorker) Start() {
-	l.mu.Lock()
-	if l.running {
-		l.mu.Unlock()
-		return
+	select {
+	case <-l.ctx.Done():
+		log.Panicf("cannot start, already started and stopped")
+	default:
 	}
-	l.running = true
-	l.mu.Unlock()
+
 	go l.run()
 }
 
 func (l *BlockedWorker) Stop() {
-	l.mu.Lock()
-	if !l.running {
-		l.mu.Unlock()
-		return
-	}
-	l.running = false
-	l.mu.Unlock()
+	l.cancel()
 }

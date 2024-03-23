@@ -45,7 +45,7 @@ func NewManager(
 	return &m
 }
 
-func (m *Manager) HandleReceive(container types.Container) {
+func (m *Manager) HandleReceive(container *types.Container) {
 	m.subscriber.HandleReceive(container)
 }
 
@@ -66,7 +66,7 @@ func (m *Manager) Publish(
 func (m *Manager) Subscribe(
 	topicName string,
 	topicType string,
-	onReceive func(Message),
+	onReceive func(*Message),
 ) error {
 	return m.subscriber.Subscribe(
 		topicName,

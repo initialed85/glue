@@ -1,7 +1,9 @@
 package serialization
 
 import (
+	"fmt"
 	"log"
+	"net"
 	"testing"
 	"time"
 
@@ -11,7 +13,11 @@ import (
 	"github.com/initialed85/glue/pkg/types"
 )
 
-func getAnnouncementContainer() types.Container {
+func getAnnouncementContainer() *types.Container {
+	discoveryListenAddress, _ := net.ResolveUDPAddr("udp4", "1.2.3.4:1234")
+	discoveryTargetAddress, _ := net.ResolveUDPAddr("udp4", "1.2.3.4:1234")
+	listenAddress, _ := net.ResolveUDPAddr("udp4", fmt.Sprintf("0.0.0.0:%v", "5678"))
+
 	return types.GetAnnouncementContainer(
 		time.Now(),
 		"1.2.3.4:1234",
@@ -19,11 +25,13 @@ func getAnnouncementContainer() types.Container {
 		ksuid.New(),
 		"some-endpoint-1",
 		time.Second,
-		5678,
+		discoveryListenAddress,
+		discoveryTargetAddress,
+		listenAddress,
 	)
 }
 
-func getFrameContainer() types.Container {
+func getFrameContainer() *types.Container {
 	return types.GetFrameContainer(
 		time.Millisecond*100,
 		time.Second,
@@ -41,7 +49,7 @@ func getFrameContainer() types.Container {
 	)
 }
 
-func testSerializeAndDeserializeContainer(t *testing.T, expected types.Container) {
+func testSerializeAndDeserializeContainer(t *testing.T, expected *types.Container) {
 	data, err := Serialize(expected)
 	if err != nil {
 		log.Fatal(err)
@@ -52,11 +60,14 @@ func testSerializeAndDeserializeContainer(t *testing.T, expected types.Container
 		log.Fatal(err)
 	}
 
+	actual.SentByAddr = nil
+	actual.SentToAddr = nil
+
 	assert.Equal(t, expected.SentTimestamp.Format(time.RFC3339), actual.SentTimestamp.Format(time.RFC3339))
 
 	if expected.Frame != nil {
-		expected.Frame.ResendPeriod = time.Duration(0)
-		expected.Frame.ResendExpiry = time.Duration(0)
+		expected.Frame.ResendPeriod = time.Millisecond * 100
+		expected.Frame.ResendExpiry = time.Second
 	}
 
 	expected.SentTimestamp = time.Time{}

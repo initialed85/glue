@@ -1,6 +1,7 @@
 package network
 
 import (
+	"fmt"
 	"net"
 	"sync"
 )
@@ -28,10 +29,10 @@ func NewManager() *Manager {
 }
 
 func (m *Manager) GetSender(
-	rawDstAddr string,
+	dstAddr *net.UDPAddr,
 ) (*Sender, error) {
 	senderKey := senderKey{
-		rawDstAddr: rawDstAddr,
+		rawDstAddr: dstAddr.String(),
 	}
 
 	m.mu.Lock()
@@ -41,25 +42,25 @@ func (m *Manager) GetSender(
 
 	sender, ok := m.senderBySenderKey[senderKey]
 	if !ok || sender == nil {
-		sender = NewSender(rawDstAddr)
+		sender = NewSender(dstAddr)
 
 		err = sender.Open()
 		if err != nil {
-			sender = nil
-		} else {
-			m.senderBySenderKey[senderKey] = sender
+			return nil, err
 		}
+
+		m.senderBySenderKey[senderKey] = sender
 	}
 
-	return sender, err
+	return sender, nil
 }
 
 func (m *Manager) GetReceiver(
-	rawDstAddr string,
+	dstAddr *net.UDPAddr,
 	interfaceName string,
 ) (*Receiver, error) {
 	receiverKey := receiverKey{
-		rawDstAddr:    rawDstAddr,
+		rawDstAddr:    dstAddr.String(),
 		interfaceName: interfaceName,
 	}
 
@@ -70,36 +71,40 @@ func (m *Manager) GetReceiver(
 
 	receiver, ok := m.receiverByReceiverKey[receiverKey]
 	if !ok || receiver == nil {
-		receiver = NewReceiver(rawDstAddr, interfaceName)
+		receiver = NewReceiver(dstAddr, interfaceName)
 
 		err = receiver.Open()
 		if err != nil {
-			receiver = nil
-		} else {
-			m.receiverByReceiverKey[receiverKey] = receiver
+			return nil, err
 		}
 
+		m.receiverByReceiverKey[receiverKey] = receiver
 	}
 
 	return receiver, err
 }
 
 func (m *Manager) GetRawSrcAddr(
-	rawDstAddr string,
-) (string, error) {
-	sender, err := m.GetSender(rawDstAddr)
+	dstAddr *net.UDPAddr,
+) (*net.UDPAddr, error) {
+	sender, err := m.GetSender(dstAddr)
 	if err != nil {
-		return "", err
+		return nil, fmt.Errorf("network manager failed to get sender while getting src addr for %v: %v", dstAddr.String(), err)
 	}
 
-	return sender.GetRawSrcAddr()
+	srcAddr, err := sender.GetRawSrcAddr()
+	if err != nil {
+		return nil, fmt.Errorf("network manager failed to get src addr from sender for %v: %v", dstAddr.String(), err)
+	}
+
+	return srcAddr, nil
 }
 
 func (m *Manager) Send(
-	rawDstAddr string,
+	dstAddr *net.UDPAddr,
 	b []byte,
 ) error {
-	sender, err := m.GetSender(rawDstAddr)
+	sender, err := m.GetSender(dstAddr)
 	if err != nil {
 		return err
 	}
@@ -113,11 +118,11 @@ func (m *Manager) Send(
 }
 
 func (m *Manager) RegisterCallback(
-	rawDstAddr string,
+	dstAddr *net.UDPAddr,
 	interfaceName string,
-	callback func(*net.UDPAddr, []byte),
+	callback func(*net.UDPAddr, *net.UDPAddr, []byte),
 ) error {
-	receiver, err := m.GetReceiver(rawDstAddr, interfaceName)
+	receiver, err := m.GetReceiver(dstAddr, interfaceName)
 	if err != nil {
 		return err
 	}
@@ -126,11 +131,11 @@ func (m *Manager) RegisterCallback(
 }
 
 func (m *Manager) UnregisterCallback(
-	rawDstAddr string,
+	dstAddr *net.UDPAddr,
 	interfaceName string,
-	callback func(*net.UDPAddr, []byte),
+	callback func(*net.UDPAddr, *net.UDPAddr, []byte),
 ) error {
-	receiver, err := m.GetReceiver(rawDstAddr, interfaceName)
+	receiver, err := m.GetReceiver(dstAddr, interfaceName)
 	if err != nil {
 		return err
 	}
@@ -145,7 +150,7 @@ func (m *Manager) Start() {
 
 func (m *Manager) Stop() {
 	m.mu.Lock()
-	m.mu.Unlock()
+	defer m.mu.Unlock()
 
 	for _, sender := range m.senderBySenderKey {
 		sender.Close()

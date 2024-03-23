@@ -2,11 +2,14 @@ package endpoint
 
 import (
 	"fmt"
+	"log"
+	"net"
 	"time"
 
 	"github.com/segmentio/ksuid"
 
 	"github.com/initialed85/glue/pkg/discovery"
+	"github.com/initialed85/glue/pkg/helpers"
 	"github.com/initialed85/glue/pkg/network"
 	"github.com/initialed85/glue/pkg/topics"
 	"github.com/initialed85/glue/pkg/transport"
@@ -17,13 +20,14 @@ type Manager struct {
 	networkID                      int64
 	endpointID                     ksuid.KSUID
 	endpointName                   string
-	listenPort                     int
-	multicastAddress               string
-	interfaceName                  string
+	listenAddress                  *net.UDPAddr
+	discoveryListenAddress         *net.UDPAddr
+	discoveryTargetAddress         *net.UDPAddr
+	listenInterface                string
 	discoveryRate                  time.Duration
 	discoveryRateTimeoutMultiplier float64
-	onAdded                        func(types.Container)
-	onRemoved                      func(types.Container)
+	onAdded                        func(*types.Container)
+	onRemoved                      func(*types.Container)
 	networkManager                 *network.Manager
 	discoveryManager               *discovery.Manager
 	transportManager               *transport.Manager
@@ -34,21 +38,33 @@ func NewManager(
 	networkID int64,
 	endpointID ksuid.KSUID,
 	endpointName string,
-	listenPort int,
-	multicastAddress string,
-	interfaceName string,
+	listenAddress *net.UDPAddr,
+	discoveryListenAddress *net.UDPAddr,
+	discoveryTargetAddress *net.UDPAddr,
+	listenInterface string,
 	discoveryRate time.Duration,
 	discoveryRateTimeoutMultiplier float64,
-	onAdded func(types.Container),
-	onRemoved func(types.Container),
+	onAdded func(*types.Container),
+	onRemoved func(*types.Container),
 ) *Manager {
+	log.Printf("endpoint; networkID: %v", networkID)
+	log.Printf("endpoint; endpointID: %v", endpointID)
+	log.Printf("endpoint; endpointName: %v", endpointName)
+	log.Printf("endpoint; listenAddress: %v", listenAddress)
+	log.Printf("endpoint; discoveryListenAddress: %v", discoveryListenAddress)
+	log.Printf("endpoint; discoveryTargetAddress: %v", discoveryTargetAddress)
+	log.Printf("endpoint; listenInterface: %v", listenInterface)
+	log.Printf("endpoint; discoveryRate: %v", discoveryRate)
+	log.Printf("endpoint; discoveryRateTimeoutMultiplier: %v", discoveryRateTimeoutMultiplier)
+
 	m := Manager{
 		networkID:                      networkID,
 		endpointID:                     endpointID,
 		endpointName:                   endpointName,
-		listenPort:                     listenPort,
-		multicastAddress:               multicastAddress,
-		interfaceName:                  interfaceName,
+		listenAddress:                  listenAddress,
+		discoveryListenAddress:         discoveryListenAddress,
+		discoveryTargetAddress:         discoveryTargetAddress,
+		listenInterface:                listenInterface,
 		discoveryRate:                  discoveryRate,
 		discoveryRateTimeoutMultiplier: discoveryRateTimeoutMultiplier,
 		onAdded:                        onAdded,
@@ -60,9 +76,10 @@ func NewManager(
 		networkID,
 		endpointID,
 		endpointName,
-		listenPort,
-		multicastAddress,
-		interfaceName,
+		listenAddress,
+		discoveryListenAddress,
+		discoveryTargetAddress,
+		listenInterface,
 		discoveryRate,
 		discoveryRateTimeoutMultiplier,
 		m.networkManager,
@@ -74,11 +91,11 @@ func NewManager(
 		networkID,
 		endpointID,
 		endpointName,
-		listenPort,
-		interfaceName,
+		listenAddress,
+		listenInterface,
 		m.discoveryManager,
 		m.networkManager,
-		func(container types.Container) {
+		func(container *types.Container) {
 			m.topicsManager.HandleReceive(container)
 		},
 	)
@@ -93,30 +110,76 @@ func NewManager(
 }
 
 func NewManagerSimple() (*Manager, error) {
-	endpointID := ksuid.New()
-
-	port, err := network.GetFreePort()
+	networkID, err := helpers.GetNetworkIDFromEnv()
 	if err != nil {
-		return nil, err
+		networkID = 1
 	}
 
-	defaultInterfaceName, err := network.GetDefaultInterfaceName()
+	endpointID, err := helpers.GetEndpointIDFromEnv()
 	if err != nil {
-		return nil, err
+		endpointID = ksuid.New()
 	}
 
-	// TODO: fix magic numbers and magic strings
+	endpointName, err := helpers.GetEndpointNameFromEnv()
+	if err != nil {
+		endpointName = fmt.Sprintf("Endpoint_%v", endpointID)
+	}
+
+	listenAddress, err := helpers.GetListenAddressFromEnv()
+	if err != nil {
+		listenPort, err := network.GetFreePort()
+		if err != nil {
+			return nil, err
+		}
+
+		rawListenAddress := fmt.Sprintf("0.0.0.0:%v", listenPort)
+
+		listenAddress, err = net.ResolveUDPAddr(network.GetNetwork(rawListenAddress), rawListenAddress)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	discoveryTargetAddress, err := helpers.GetDiscoveryTargetAddressFromEnv()
+	if err != nil {
+		discoveryTargetAddress, _ = net.ResolveUDPAddr("udp4", "239.192.137.1:27320")
+	}
+
+	discoveryListenAddress, err := helpers.GetDiscoveryListenAddressFromEnv()
+	if err != nil {
+		discoveryListenAddress, _ = net.ResolveUDPAddr("udp4", "239.192.137.1:27320")
+	}
+
+	listenInterface, err := helpers.GetListenInterfaceFromEnv()
+	if err != nil {
+		listenInterface, err = network.GetDefaultInterfaceName()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	discoveryRate, err := helpers.GetDiscoveryRateFromEnv()
+	if err != nil {
+		discoveryRate = time.Second * 1
+	}
+
+	discoveryRateTimeoutMultiplier, err := helpers.GetDiscoveryRateTimeoutMultiplierFromEnv()
+	if err != nil {
+		discoveryRateTimeoutMultiplier = 2.0
+	}
+
 	return NewManager(
-		1,
+		networkID,
 		endpointID,
-		fmt.Sprintf("Endpoint_%v", endpointID),
-		port,
-		"239.192.137.1:27320",
-		defaultInterfaceName,
-		time.Second,
-		5,
-		func(container types.Container) {},
-		func(container types.Container) {},
+		endpointName,
+		listenAddress,
+		discoveryListenAddress,
+		discoveryTargetAddress,
+		listenInterface,
+		discoveryRate,
+		discoveryRateTimeoutMultiplier,
+		func(container *types.Container) {},
+		func(container *types.Container) {},
 	), nil
 }
 
@@ -145,7 +208,7 @@ func (m *Manager) Publish(
 func (m *Manager) Subscribe(
 	topicName string,
 	topicType string,
-	onReceive func(topics.Message),
+	onReceive func(*topics.Message),
 ) error {
 	return m.topicsManager.Subscribe(
 		topicName,

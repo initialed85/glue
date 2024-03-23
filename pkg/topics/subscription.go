@@ -14,13 +14,13 @@ import (
 type Subscription struct {
 	scheduleWorker             *worker.ScheduledWorker
 	mu                         sync.Mutex
-	messageByMessageIdentifier map[MessageIdentifier]Message
+	messageByMessageIdentifier map[MessageIdentifier]*Message
 	endpointID                 ksuid.KSUID
 	endpointName               string
 	topicName                  string
 	topicType                  string
 	transportManager           *transport.Manager
-	onReceive                  func(Message)
+	onReceive                  func(*Message)
 }
 
 func NewSubscription(
@@ -29,10 +29,10 @@ func NewSubscription(
 	topicName string,
 	topicType string,
 	transportManager *transport.Manager,
-	onReceive func(Message),
+	onReceive func(*Message),
 ) *Subscription {
 	s := Subscription{
-		messageByMessageIdentifier: make(map[MessageIdentifier]Message),
+		messageByMessageIdentifier: make(map[MessageIdentifier]*Message),
 		endpointID:                 endpointID,
 		endpointName:               endpointName,
 		topicName:                  topicName,
@@ -74,12 +74,12 @@ func (s *Subscription) work() {
 	s.mu.Unlock()
 }
 
-func (s *Subscription) OnReceive(onReceive func(Message)) {
+func (s *Subscription) OnReceive(onReceive func(*Message)) {
 	s.onReceive = onReceive
 }
 
-func (s *Subscription) HandleReceive(message Message) {
-	messages := make([]Message, 0)
+func (s *Subscription) HandleReceive(message *Message) {
+	messages := make([]*Message, 0)
 
 	messages = append(messages, message)
 

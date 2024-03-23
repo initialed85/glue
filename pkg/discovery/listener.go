@@ -11,31 +11,32 @@ import (
 )
 
 type Listener struct {
-	networkID        int64
-	multicastAddress string
-	interfaceName    string
-	networkManager   *network.Manager
-	onReceive        func(types.Container)
+	networkID              int64
+	discoveryListenAddress *net.UDPAddr
+	interfaceName          string
+	networkManager         *network.Manager
+	onReceive              func(*types.Container)
 }
 
 func NewListener(
 	networkID int64,
-	multicastAddress string,
+	discoveryListenAddress *net.UDPAddr,
 	interfaceName string,
 	networkManager *network.Manager,
-	onReceive func(types.Container),
+	onReceive func(*types.Container),
 ) *Listener {
 	return &Listener{
-		networkID:        networkID,
-		multicastAddress: multicastAddress,
-		interfaceName:    interfaceName,
-		networkManager:   networkManager,
-		onReceive:        onReceive,
+		networkID:              networkID,
+		discoveryListenAddress: discoveryListenAddress,
+		interfaceName:          interfaceName,
+		networkManager:         networkManager,
+		onReceive:              onReceive,
 	}
 }
 
 func (l *Listener) callback(
 	srcAddr *net.UDPAddr,
+	dstAddr *net.UDPAddr,
 	data []byte,
 ) {
 	receivedTimestamp := time.Now()
@@ -47,26 +48,34 @@ func (l *Listener) callback(
 	}
 
 	if container.NetworkID != l.networkID {
-		log.Printf("error: expected networkID %#+v but got %#+v", l.networkID, container.NetworkID)
+		log.Printf("error: expected networkID %#+v but got %#+v for %v", l.networkID, container.NetworkID, container.String())
 		return
 	}
 
+	if container.Announcement == nil {
+		log.Printf("error: unexpectedly received non-announcement %#+v", container)
+		return
+	}
+
+	// log.Printf("%v -> %v; receive announcement for %v", srcAddr.String(), dstAddr, container.SourceEndpointName)
+
 	container.ReceivedTimestamp = receivedTimestamp
-	container.ReceivedAddress = srcAddr.String()
+	container.ReceivedFrom = srcAddr.String()
+	container.ReceivedBy = dstAddr.String()
 
 	// TODO: maybe some sort of background worker pool vs unbounded amount of goroutines
 	go l.onReceive(container)
 }
 
 func (l *Listener) Start() {
-	err := l.networkManager.RegisterCallback(l.multicastAddress, l.interfaceName, l.callback)
+	err := l.networkManager.RegisterCallback(l.discoveryListenAddress, l.interfaceName, l.callback)
 	if err != nil {
 		log.Printf("warning: attempt to register callback failed stating: %v", err)
 	}
 }
 
 func (l *Listener) Stop() {
-	err := l.networkManager.UnregisterCallback(l.multicastAddress, l.interfaceName, l.callback)
+	err := l.networkManager.UnregisterCallback(l.discoveryListenAddress, l.interfaceName, l.callback)
 	if err != nil {
 		log.Printf("warning: attempt to unregister callback failed stating: %v", err)
 	}
