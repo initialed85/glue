@@ -26,21 +26,21 @@ From top to bottom:
     -   publish / subscribe
     -   handle late joiners (at the publisher level)
     -   handle network partitions (any endpoint can cache messages)
--   Fragmentation (IN PROGRESS)
+-   Fragmentation (DONE)
     -   addressing is endpoint IDs and names
     -   send / receive
     -   handle fragmentation / defragmentation of messages
--   Transport (COMPLETE)
+-   Transport (DONE)
     -   addressing is endpoint IDs and names
     -   send / receive
     -   handle ACKs / resending of messages
--   Discovery (COMPLETE)
+-   Discovery (DONE)
     -   addressing is endpoint IDs and names
     -   announce / listen
     -   handle add on discovery / remove on expiry
--   Serialization (COMPLETE)
+-   Serialization (DONE)
     -   cross-platform/cross-language format (right now it's just JSON)
--   Network (COMPLETE)
+-   Network (DONE)
     -   shared abstraction for low level network interactions
 
 ## Usage

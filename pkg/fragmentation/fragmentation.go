@@ -16,6 +16,7 @@ func Fragment(payload []byte, fragmentSize int) ([][]byte, error) {
 	fragments := make([][]byte, 0)
 
 	fragment := make([]byte, 0)
+
 	for _, c := range payload {
 		if len(fragment) == fragmentSize {
 			fragments = append(fragments, fragment)

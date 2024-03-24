@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"log"
+	"math/rand"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/initialed85/glue/pkg/endpoint"
@@ -33,14 +36,25 @@ func main() {
 	scheduleWorker := worker.NewScheduledWorker(
 		func() {},
 		func() {
+			inputBuf := []byte(fmt.Sprintf("%v;", sequence))
+
+			inputSize := 65536
+
+			for len(inputBuf) < inputSize {
+				inputBuf = append(inputBuf, byte(rand.Intn(255)))
+			}
+
+			outputBuf := bytes.NewBuffer(inputBuf)
+
 			err := endpointManager.Publish(
 				*topicName,
 				"some_type",
-				time.Millisecond*100,
-				[]byte(fmt.Sprintf("%v", sequence)),
+				time.Millisecond*50,
+				outputBuf.Bytes(),
 			)
 			if err != nil {
-				log.Printf("warning: %#+v", err)
+				log.Printf("warning: %v", err)
+				return
 			}
 
 			sequence++
@@ -61,9 +75,14 @@ func main() {
 			*topicName,
 			"some_type",
 			func(message *topics.Message) {
-				sequence, err = strconv.ParseInt(string(message.Payload), 10, 64)
+				rawPayload := bytes.NewBuffer(message.Payload)
+
+				payload := strings.Split(rawPayload.String(), ";")[0]
+
+				sequence, err = strconv.ParseInt(payload, 10, 64)
 				if err != nil {
 					log.Print(err)
+					return
 				}
 
 				if sequence%20 == 0 {

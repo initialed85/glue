@@ -8,6 +8,7 @@ import (
 	"github.com/segmentio/ksuid"
 	"github.com/vmihailenco/msgpack/v5"
 
+	"github.com/initialed85/glue/pkg/fragmentation"
 	"github.com/initialed85/glue/pkg/transport"
 	"github.com/initialed85/glue/pkg/worker"
 )
@@ -115,22 +116,34 @@ func (p *Publication) Publish(
 		return err
 	}
 
-	p.transportManager.Broadcast(
-		MessageTimeout,
-		MessageExpiry,
-		ksuid.New(),
-		1, // TODO: implement fragmentation
-		0, // TODO: implement fragmentation
-		true,
-		payload,
-	)
+	fragments, err := fragmentation.Fragment(payload, 8192)
+	if err != nil {
+		return err
+	}
 
-	p.messageByMessageIdentifier[MessageIdentifier{
-		EndpointID:     p.endpointID,
-		SequenceNumber: p.sequenceNumber,
-	}] = message
+	fragmentCount := len(fragments)
 
-	p.sequenceNumber += 1
+	correlationID := ksuid.New()
+
+	for i, fragment := range fragments {
+
+		p.transportManager.Broadcast(
+			MessageTimeout,
+			MessageExpiry,
+			correlationID,
+			int64(fragmentCount),
+			int64(i),
+			true,
+			fragment,
+		)
+
+		p.messageByMessageIdentifier[MessageIdentifier{
+			EndpointID:     p.endpointID,
+			SequenceNumber: p.sequenceNumber,
+		}] = message
+
+		p.sequenceNumber += 1
+	}
 
 	return nil
 }
